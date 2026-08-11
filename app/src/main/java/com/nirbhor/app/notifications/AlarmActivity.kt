@@ -84,9 +84,10 @@ class AlarmActivity : ComponentActivity() {
                     }
                     DisposableEffect(settings.readAloud, doses, isBangla) {
                         var tts: TextToSpeech? = null
+                        var disposed = false
                         if (settings.readAloud && doses.isNotEmpty()) {
                             tts = TextToSpeech(this@AlarmActivity) { status ->
-                                if (status == TextToSpeech.SUCCESS) {
+                                if (!disposed && status == TextToSpeech.SUCCESS) {
                                     val language = if (isBangla) Locale("bn", "BD") else Locale.ENGLISH
                                     tts?.language = language
                                     val names = doses.joinToString(", ") { it.medicine.displayName }
@@ -94,7 +95,11 @@ class AlarmActivity : ComponentActivity() {
                                 }
                             }
                         }
-                        onDispose { tts?.stop(); tts?.shutdown() }
+                        onDispose {
+                            disposed = true
+                            tts?.stop()
+                            tts?.shutdown()
+                        }
                     }
                     AlarmContent(
                         epoch = epoch,

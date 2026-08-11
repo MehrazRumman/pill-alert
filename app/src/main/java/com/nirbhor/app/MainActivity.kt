@@ -10,8 +10,8 @@ import com.nirbhor.app.navigation.NirbhorAppRoot
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             NirbhorAppRoot()
         }

@@ -29,7 +29,11 @@ data class MedicineEntity(
 
 @Entity(
     tableName = "doses",
-    indices = [Index("medicineId"), Index("scheduledEpochMillis")],
+    indices = [
+        Index("medicineId"),
+        Index("scheduledEpochMillis"),
+        Index(value = ["medicineId", "scheduledEpochMillis"], unique = true),
+    ],
 )
 data class DoseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

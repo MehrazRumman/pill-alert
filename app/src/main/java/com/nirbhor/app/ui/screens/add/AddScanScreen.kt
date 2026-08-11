@@ -243,7 +243,9 @@ private fun CameraPreview(
         val future = ProcessCameraProvider.getInstance(context)
         val executor = ContextCompat.getMainExecutor(context)
         var provider: ProcessCameraProvider? = null
+        var disposed = false
         future.addListener({
+            if (disposed) return@addListener
             try {
                 provider = future.get()
                 val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
@@ -259,6 +261,7 @@ private fun CameraPreview(
             }
         }, executor)
         onDispose {
+            disposed = true
             onReady(null)
             provider?.unbindAll()
         }

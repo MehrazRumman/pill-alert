@@ -3,6 +3,7 @@ package com.nirbhor.app.data
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -10,12 +11,15 @@ import com.nirbhor.app.domain.AppSettings
 import com.nirbhor.app.domain.LocalePref
 import com.nirbhor.app.domain.TimeFormat
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
 /** Persists [AppSettings] in a Preferences DataStore. */
-class SettingsStore(private val context: Context) {
+class SettingsStore(context: Context) {
+    private val appContext = context.applicationContext
 
     private object Keys {
         val locale = stringPreferencesKey("locale_pref")
@@ -31,7 +35,11 @@ class SettingsStore(private val context: Context) {
         val inboxReadSignature = stringPreferencesKey("inbox_read_signature")
     }
 
-    val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
+    val settings: Flow<AppSettings> = appContext.dataStore.data
+        .catch { error ->
+            if (error is IOException) emit(emptyPreferences()) else throw error
+        }
+        .map { p ->
         AppSettings(
             localePref = p[Keys.locale]?.let { runCatching { LocalePref.valueOf(it) }.getOrNull() } ?: LocalePref.SYSTEM,
             timeFormat = p[Keys.timeFormat]?.let { runCatching { TimeFormat.valueOf(it) }.getOrNull() },
@@ -45,7 +53,7 @@ class SettingsStore(private val context: Context) {
             notificationPrimingShown = p[Keys.priming] ?: false,
             inboxReadSignature = p[Keys.inboxReadSignature] ?: "",
         )
-    }
+        }
 
     suspend fun setLocale(pref: LocalePref) = edit { it[Keys.locale] = pref.name }
     suspend fun setTimeFormat(fmt: TimeFormat?) = edit {
@@ -64,6 +72,6 @@ class SettingsStore(private val context: Context) {
     suspend fun setInboxReadSignature(v: String) = edit { it[Keys.inboxReadSignature] = v }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
-        context.dataStore.edit(block)
+        appContext.dataStore.edit(block)
     }
 }

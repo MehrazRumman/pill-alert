@@ -1,6 +1,7 @@
 package com.nirbhor.app.data
 
 import android.content.Context
+import androidx.room.withTransaction
 import com.nirbhor.app.domain.DoseOccurrence
 import com.nirbhor.app.domain.DoseScheduler
 import com.nirbhor.app.domain.DoseSource
@@ -36,21 +37,25 @@ class NirbhorRepository private constructor(
     fun medicine(id: String): Flow<Medicine?> = medicineDao.observe(id).map { it?.toDomain() }
 
     suspend fun upsertMedicine(medicine: Medicine) {
-        val existing = medicineDao.get(medicine.id)
-        medicineDao.upsert(medicine.toEntity(createdAt = existing?.createdAt ?: System.currentTimeMillis()))
-        val scheduleChanged = existing == null || existing.toDomain().let { old ->
-            old.frequency != medicine.frequency ||
-                old.weekdaysMask != medicine.weekdaysMask ||
-                old.timeTokens != medicine.timeTokens ||
-                old.resolvedTimes != medicine.resolvedTimes ||
-                old.paused != medicine.paused
+        db.withTransaction {
+            val existing = medicineDao.get(medicine.id)
+            medicineDao.upsert(medicine.toEntity(createdAt = existing?.createdAt ?: System.currentTimeMillis()))
+            val scheduleChanged = existing == null || existing.toDomain().let { old ->
+                old.frequency != medicine.frequency ||
+                    old.weekdaysMask != medicine.weekdaysMask ||
+                    old.timeTokens != medicine.timeTokens ||
+                    old.resolvedTimes != medicine.resolvedTimes ||
+                    old.paused != medicine.paused
+            }
+            if (scheduleChanged) regenerateUpcoming(medicine.id)
         }
-        if (scheduleChanged) regenerateUpcoming(medicine.id)
     }
 
     suspend fun deleteMedicine(id: String) {
-        doseDao.deleteForMedicine(id)
-        medicineDao.delete(id)
+        db.withTransaction {
+            doseDao.deleteForMedicine(id)
+            medicineDao.delete(id)
+        }
     }
 
     suspend fun addStock(id: String, delta: Int) {
@@ -120,37 +125,40 @@ class NirbhorRepository private constructor(
     }
 
     suspend fun markTaken(doseId: Long, source: DoseSource = DoseSource.HOME, late: Boolean? = null) {
-        val dose = doseDao.get(doseId) ?: return
-        val now = System.currentTimeMillis()
-        val wasLate = late ?: (now > dose.scheduledEpochMillis + 30 * 60_000L)
-        val status = if (wasLate) DoseStatus.TAKEN_LATE else DoseStatus.TAKEN
-        val changed = doseDao.setStatusIf(
-            id = doseId,
-            status = status.name,
-            confirmedAt = now,
-            source = source.name,
-            allowedStatuses = listOf(DoseStatus.UPCOMING.name, DoseStatus.MISSED.name, DoseStatus.SKIPPED.name),
-        )
-        if (changed == 0) return
-        // Decrement stock by the medicine's dose (rounded up for halves).
-        val m = medicineDao.get(dose.medicineId) ?: return
-        val used = ceil(m.dosePerIntake.toDouble()).toInt().coerceAtLeast(1)
-        medicineDao.adjustStock(m.id, -used, System.currentTimeMillis())
+        db.withTransaction {
+            val dose = doseDao.get(doseId) ?: return@withTransaction
+            val medicine = medicineDao.get(dose.medicineId) ?: return@withTransaction
+            val now = System.currentTimeMillis()
+            val wasLate = late ?: (now > dose.scheduledEpochMillis + 30 * 60_000L)
+            val status = if (wasLate) DoseStatus.TAKEN_LATE else DoseStatus.TAKEN
+            val changed = doseDao.setStatusIf(
+                id = doseId,
+                status = status.name,
+                confirmedAt = now,
+                source = source.name,
+                allowedStatuses = listOf(DoseStatus.UPCOMING.name, DoseStatus.MISSED.name, DoseStatus.SKIPPED.name),
+            )
+            if (changed == 0) return@withTransaction
+            val used = ceil(medicine.dosePerIntake.toDouble()).toInt().coerceAtLeast(1)
+            medicineDao.adjustStock(medicine.id, -used, now)
+        }
     }
 
     suspend fun undoTaken(doseId: Long) {
-        val dose = doseDao.get(doseId) ?: return
-        val changed = doseDao.setStatusIf(
-            id = doseId,
-            status = DoseStatus.UPCOMING.name,
-            confirmedAt = null,
-            source = null,
-            allowedStatuses = listOf(DoseStatus.TAKEN.name, DoseStatus.TAKEN_LATE.name),
-        )
-        if (changed == 0) return
-        val m = medicineDao.get(dose.medicineId) ?: return
-        val used = ceil(m.dosePerIntake.toDouble()).toInt().coerceAtLeast(1)
-        medicineDao.adjustStock(m.id, used, System.currentTimeMillis())
+        db.withTransaction {
+            val dose = doseDao.get(doseId) ?: return@withTransaction
+            val medicine = medicineDao.get(dose.medicineId) ?: return@withTransaction
+            val changed = doseDao.setStatusIf(
+                id = doseId,
+                status = DoseStatus.UPCOMING.name,
+                confirmedAt = null,
+                source = null,
+                allowedStatuses = listOf(DoseStatus.TAKEN.name, DoseStatus.TAKEN_LATE.name),
+            )
+            if (changed == 0) return@withTransaction
+            val used = ceil(medicine.dosePerIntake.toDouble()).toInt().coerceAtLeast(1)
+            medicineDao.adjustStock(medicine.id, used, System.currentTimeMillis())
+        }
     }
 
     suspend fun skipDose(doseId: Long, source: DoseSource = DoseSource.RECOVERY_SHEET) {

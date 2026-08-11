@@ -54,7 +54,7 @@ interface DoseDao {
     @Query("SELECT * FROM doses WHERE medicineId = :medicineId AND scheduledEpochMillis BETWEEN :startMillis AND :endMillis")
     suspend fun getForMedicineBetween(medicineId: String, startMillis: Long, endMillis: Long): List<DoseEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(doses: List<DoseEntity>)
 
     @Update

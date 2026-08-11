@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
-    <cloud-backup>
-        <include domain="database" path="nirbhor.db" />
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <include domain="database" path="." />
         <include domain="sharedpref" path="." />
         <include domain="file" path="datastore" />
     </cloud-backup>
     <device-transfer>
-        <include domain="database" path="nirbhor.db" />
+        <include domain="database" path="." />
         <include domain="sharedpref" path="." />
         <include domain="file" path="datastore" />
     </device-transfer>
