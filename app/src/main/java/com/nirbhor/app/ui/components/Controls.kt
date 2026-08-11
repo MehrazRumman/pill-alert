@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -47,20 +48,24 @@ fun NbSwitch(
     val track = if (checked) (onColor ?: colors.calm) else colors.line
     val knobOffset by animateDpAsState(if (checked) 22.dp else 2.dp, label = "knob")
     Box(
-        modifier = modifier
-            .size(50.dp, 30.dp)
-            .clip(RoundedCornerShape(15.dp))
-            .background(track)
-            .clickable { onCheckedChange(!checked) },
+        modifier = modifier.minimumInteractiveComponentSize().clickable { onCheckedChange(!checked) },
+        contentAlignment = Alignment.Center,
     ) {
         Box(
             Modifier
-                .padding(top = 3.dp)
-                .offset(x = knobOffset)
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(colors.card),
-        )
+                .size(50.dp, 30.dp)
+                .clip(RoundedCornerShape(15.dp))
+                .background(track),
+        ) {
+            Box(
+                Modifier
+                    .padding(top = 3.dp)
+                    .offset { androidx.compose.ui.unit.IntOffset(knobOffset.roundToPx(), 0) }
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(colors.card),
+            )
+        }
     }
 }
 
@@ -85,7 +90,7 @@ fun SegmentedControl(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(38.dp)
+                    .height(48.dp)
                     .clip(RoundedCornerShape(9.dp))
                     .background(if (active) colors.calm else Color.Transparent)
                     .clickable { onSelect(i) },
@@ -150,7 +155,7 @@ private fun StepperButton(size: Dp, filled: Boolean, onClick: () -> Unit) {
     ) {
         Icon(
             imageVector = if (filled) Icons.Filled.Add else Icons.Filled.Remove,
-            contentDescription = null,
+            contentDescription = if (filled) "Increase" else "Decrease",
             tint = if (filled) colors.paper else colors.ink2,
             modifier = Modifier.size(28.dp),
         )

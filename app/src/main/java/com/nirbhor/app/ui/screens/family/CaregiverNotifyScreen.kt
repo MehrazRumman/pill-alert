@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -57,7 +58,20 @@ fun CaregiverNotifyScreen(actions: NavActions) {
     val repo = LocalAppContainer.current.repository
     val scope = rememberCoroutineScope()
     val cg by repo.primaryCaregiver.collectAsStateWithLifecycle(initialValue = null)
-    val caregiver = cg ?: return
+    val caregiver = cg
+
+    if (caregiver == null) {
+        Column(Modifier.fillMaxSize().background(colors.paper)) {
+            NirbhorTopBar(title = tr("কাকে জানানো হবে", "Caregiver notifications"), onBack = actions::back)
+            TintPanel(
+                background = colors.sage,
+                modifier = Modifier.padding(Dimens.screenPadding),
+            ) {
+                Text(tr("আগে একজন যত্নকারী যুক্ত করুন।", "Add a caregiver first."), style = NirbhorTheme.type.body, color = colors.ink2)
+            }
+        }
+        return
+    }
 
     fun save(updated: Caregiver) = scope.launch { repo.upsertCaregiver(updated) }
     fun toggleChannel(ch: CaregiverChannel) {
@@ -66,9 +80,9 @@ fun CaregiverNotifyScreen(actions: NavActions) {
     }
 
     Column(Modifier.fillMaxSize().background(colors.paper)) {
-        NirbhorTopBar(title = tr("রুমানাকে জানানো", "Telling Rumana"), onBack = actions::back)
+        NirbhorTopBar(title = tr("${caregiver.name}-কে জানানো", "Telling ${caregiver.name}"), onBack = actions::back)
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Dimens.screenPadding, vertical = 16.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = Dimens.screenPadding, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.cardGap)) {

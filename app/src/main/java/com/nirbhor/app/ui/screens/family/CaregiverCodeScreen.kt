@@ -11,9 +11,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
@@ -50,7 +53,8 @@ fun CaregiverCodeScreen(actions: NavActions) {
     Column(Modifier.fillMaxSize().background(colors.paper)) {
         NirbhorTopBar(title = tr("কোড দিয়ে যুক্ত হোন", "Join by code"), onBack = actions::back)
         Column(
-            Modifier.fillMaxSize().padding(horizontal = Dimens.screenPadding, vertical = 20.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding()
+                .padding(horizontal = Dimens.screenPadding, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(Dimens.groupGap), horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(tr("রোগীর অ্যাপে দেখানো ৪-অক্ষরের কোডটি লিখুন", "Enter the 4-character code shown in the patient's app"),
@@ -91,7 +95,7 @@ fun CaregiverCodeScreen(actions: NavActions) {
                 }
             }
 
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(24.dp))
             PrimaryButton(tr("যুক্ত হোন", "Join"), actions::back, height = 68.dp, enabled = matched, modifier = Modifier.fillMaxWidth())
             Text(tr("কোড নেই", "No code"), style = NirbhorTheme.type.buttonLabel, color = colors.ink3, modifier = Modifier.padding(6.dp))
         }

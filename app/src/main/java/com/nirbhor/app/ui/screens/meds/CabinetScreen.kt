@@ -42,6 +42,7 @@ import com.nirbhor.app.ui.components.SecondaryButton
 import com.nirbhor.app.ui.components.StatusPill
 import com.nirbhor.app.ui.i18n.num
 import com.nirbhor.app.ui.i18n.tr
+import com.nirbhor.app.ui.i18n.LocalIsBangla
 import com.nirbhor.app.ui.marks.MedicineMark
 import com.nirbhor.app.ui.theme.Dimens
 import com.nirbhor.app.ui.theme.NirbhorTheme
@@ -85,7 +86,7 @@ fun CabinetScreen(actions: NavActions) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             PrimaryButton(tr("ওষুধ যোগ করুন", "Add a medicine"), actions::startAddMedicine, height = 58.dp, modifier = Modifier.fillMaxWidth())
-            SecondaryButton(tr("পাতা বা বাক্স স্ক্যান করুন", "Scan a pack or box"), actions::startAddMedicine, height = 54.dp, modifier = Modifier.fillMaxWidth())
+            SecondaryButton(tr("পাতা বা বাক্স স্ক্যান করুন", "Scan a pack or box"), actions::startScan, height = 54.dp, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -110,14 +111,23 @@ private fun MedicineRow(med: Medicine, stock: StockStatus?, onClick: () -> Unit)
     }
 }
 
+@Composable
 private fun scheduleSummary(med: Medicine): String {
     // Words, not clock times — e.g. "প্রতিদিন সকাল, দুপুর, রাত".
+    val bangla = LocalIsBangla.current
     val blocks = med.timeTokens.map { TimeBlock.fromToken(it) }
-    return blocks.joinToString(", ") {
+    val frequency = when (med.frequency) {
+        com.nirbhor.app.domain.Frequency.DAILY -> if (bangla) "প্রতিদিন" else "Daily"
+        com.nirbhor.app.domain.Frequency.ALTERNATE -> if (bangla) "একদিন পরপর" else "Every other day"
+        com.nirbhor.app.domain.Frequency.WEEKDAYS -> if (bangla) "সপ্তাহের কর্মদিবসে" else "On weekdays"
+        com.nirbhor.app.domain.Frequency.WEEKLY -> if (bangla) "নির্বাচিত দিনে" else "On selected days"
+    }
+    val times = blocks.joinToString(", ") {
         when (it) {
-            TimeBlock.MORNING -> "সকাল"
-            TimeBlock.NOON -> "দুপুর"
-            TimeBlock.NIGHT -> "রাত"
+            TimeBlock.MORNING -> if (bangla) "সকাল" else "morning"
+            TimeBlock.NOON -> if (bangla) "দুপুর" else "afternoon"
+            TimeBlock.NIGHT -> if (bangla) "রাত" else "night"
         }
     }
+    return "$frequency · $times"
 }

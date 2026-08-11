@@ -35,8 +35,8 @@ import com.nirbhor.app.ui.theme.NirbhorTheme
 @Composable
 fun NirbhorTopBar(
     title: String,
-    onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val colors = NirbhorTheme.colors

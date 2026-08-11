@@ -3,6 +3,7 @@ package com.nirbhor.app.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,7 +46,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -56,6 +60,7 @@ import com.nirbhor.app.domain.TimeBlock
 import com.nirbhor.app.domain.TimelineBlock
 import com.nirbhor.app.navigation.LocalAppContainer
 import com.nirbhor.app.navigation.NavActions
+import com.nirbhor.app.notifications.AlarmScheduler
 import com.nirbhor.app.ui.components.PrimaryButton
 import com.nirbhor.app.ui.components.ProgressRing
 import com.nirbhor.app.ui.components.SecondaryButton
@@ -82,8 +87,20 @@ fun HomeScreen(actions: NavActions) {
     val colors = NirbhorTheme.colors
     val repo = LocalAppContainer.current.repository
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    val today = remember { LocalDate.now() }
+    var today by remember { mutableStateOf(LocalDate.now()) }
+    var currentTime by remember { mutableStateOf(LocalTime.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val currentDate = LocalDate.now()
+            repo.ensureDosesFor(currentDate)
+            repo.markOverdueDoses()
+            today = currentDate
+            currentTime = LocalTime.now()
+            delay(60_000L)
+        }
+    }
     val blocks by repo.timelineFor(today).collectAsStateWithLifecycle(initialValue = emptyList())
     val medicines by repo.medicines.collectAsStateWithLifecycle(initialValue = emptyList())
     val stock by repo.stockStatuses().collectAsStateWithLifecycle(initialValue = emptyList())
@@ -103,7 +120,7 @@ fun HomeScreen(actions: NavActions) {
 
     Box(Modifier.fillMaxSize().background(colors.paper)) {
         Column(Modifier.fillMaxSize()) {
-            HomeHeader(onBell = actions::openInbox)
+            HomeHeader(now = currentTime, today = today, onBell = actions::openInbox)
             Column(
                 Modifier
                     .fillMaxSize()
@@ -120,12 +137,18 @@ fun HomeScreen(actions: NavActions) {
                         blocks.forEach { block ->
                             TimeBlockSection(
                                 block = block,
+                                now = currentTime,
                                 stockById = stockById,
                                 onTaken = { dwm ->
                                     scope.launch { repo.markTaken(dwm.dose.id) }
                                     lastTaken = dwm
                                 },
-                                onSnooze = { dwm -> scope.launch { repo.snoozeDose(dwm.dose.id) } },
+                                onSnooze = { dwm ->
+                                    scope.launch {
+                                        repo.snoozeDose(dwm.dose.id)
+                                        AlarmScheduler.rescheduleAll(context.applicationContext)
+                                    }
+                                },
                                 onSkip = { dwm -> scope.launch { repo.skipDose(dwm.dose.id) } },
                             )
                         }
@@ -151,13 +174,12 @@ fun HomeScreen(actions: NavActions) {
 }
 
 @Composable
-private fun HomeHeader(onBell: () -> Unit) {
+private fun HomeHeader(now: LocalTime, today: LocalDate, onBell: () -> Unit) {
     val colors = NirbhorTheme.colors
     val bangla = LocalIsBangla.current
-    val hour = remember { LocalTime.now().hour }
+    val hour = now.hour
     val greeting = when {
         hour < 12 -> tr("সুপ্রভাত", "Good morning")
-        hour < 17 -> tr("শুভ অপরাহ্ন", "Good afternoon")
         else -> tr("শুভ সন্ধ্যা", "Good evening")
     }
     Column(Modifier.fillMaxWidth().background(colors.card)) {
@@ -170,7 +192,7 @@ private fun HomeHeader(onBell: () -> Unit) {
         ) {
             Column(Modifier.weight(1f)) {
                 Text(greeting, style = NirbhorTheme.type.header, color = colors.ink)
-                Text(todayString(bangla), style = NirbhorTheme.type.meta, color = colors.ink3)
+                Text(dateString(today, bangla), style = NirbhorTheme.type.meta, color = colors.ink3)
             }
             Box(
                 Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(colors.sage).clickable(onClick = onBell),
@@ -213,13 +235,13 @@ private enum class BlockState { DONE, DUE, UPCOMING }
 @Composable
 private fun TimeBlockSection(
     block: TimelineBlock,
+    now: LocalTime,
     stockById: Map<String, StockStatus>,
     onTaken: (DoseWithMedicine) -> Unit,
     onSnooze: (DoseWithMedicine) -> Unit,
     onSkip: (DoseWithMedicine) -> Unit,
 ) {
     val colors = NirbhorTheme.colors
-    val now = remember { LocalTime.now() }
     val blockTime = LocalTime.of(block.hour, block.minute)
     val state = when {
         block.allTaken -> BlockState.DONE
@@ -283,7 +305,11 @@ private fun DoseCard(
             DoseIdentity(dwm, titleStyle = NirbhorTheme.type.cardTitlePrimary)
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                PrimaryButton(text = tr("খেয়েছি", "Taken"), onClick = onTaken, height = Dimens.doseConfirm, modifier = Modifier.weight(1f))
+                if (med.highRisk) {
+                    HoldToConfirmButton(onLongPress = onTaken, modifier = Modifier.weight(1f))
+                } else {
+                    PrimaryButton(text = tr("খেয়েছি", "Taken"), onClick = onTaken, height = Dimens.doseConfirm, modifier = Modifier.weight(1f))
+                }
                 SquareAction(Icons.Filled.Schedule, onSnooze)
                 SquareAction(Icons.Filled.Remove, onSkip)
             }
@@ -324,6 +350,24 @@ private fun DoseCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HoldToConfirmButton(onLongPress: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = NirbhorTheme.colors
+    Box(
+        modifier.heightIn(min = Dimens.doseConfirm).clip(RoundedCornerShape(Dimens.radiusButton))
+            .background(colors.calm)
+            .combinedClickable(
+                role = Role.Button,
+                onClick = {},
+                onLongClick = onLongPress,
+                onLongClickLabel = tr("চেপে ধরে নিশ্চিত করুন", "Hold to confirm"),
+            ).padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(tr("চেপে ধরুন", "Hold to confirm"), style = NirbhorTheme.type.buttonLabel, color = colors.paper)
     }
 }
 
@@ -395,9 +439,9 @@ private fun EmptyHome(actions: NavActions) {
         Spacer(Modifier.height(24.dp))
         Text(tr("এখানে আপনার আজকের ওষুধ দেখা যাবে", "Your medicines for today will appear here"), style = NirbhorTheme.type.titleHero, color = colors.ink)
         Text(tr("শুরু করতে একটি ওষুধ যোগ করুন।", "Add a medicine to get started."), style = NirbhorTheme.type.body, color = colors.ink2)
-        PrimaryButton(tr("পাতা স্ক্যান করে শুরু করুন", "Scan a pack to start"), actions::startAddMedicine, height = 68.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
-        SecondaryButton(tr("প্রেসক্রিপশনের ছবি", "Prescription photo"), actions::startAddMedicine, height = 58.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
-        SecondaryButton(tr("নাম দিয়ে খুঁজুন", "Search by name"), actions::startAddMedicine, height = 58.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
+        PrimaryButton(tr("পাতা স্ক্যান করে শুরু করুন", "Scan a pack to start"), actions::startScan, height = 68.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
+        SecondaryButton(tr("প্রেসক্রিপশনের ছবি", "Prescription photo"), actions::startPrescription, height = 58.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
+        SecondaryButton(tr("নাম দিয়ে খুঁজুন", "Search by name"), actions::startSearch, height = 58.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
         TintPanel(background = colors.sage) {
             Text(tr("পরিবারের কেউ আপনার হয়ে ওষুধ যোগ করে দিতে পারেন।", "A family member can add your medicines for you."), style = NirbhorTheme.type.body, color = colors.ink2)
         }
@@ -415,8 +459,7 @@ private val enMonths = arrayOf("January", "February", "March", "April", "May", "
 private val bnWeekdays = arrayOf("সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার", "রবিবার")
 private val enWeekdays = arrayOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
-private fun todayString(bangla: Boolean): String {
-    val d = LocalDate.now()
+private fun dateString(d: LocalDate, bangla: Boolean): String {
     val wd = d.dayOfWeek.value - 1
     return if (bangla) {
         "${bnWeekdays[wd]}, ${Numerals.number(d.dayOfMonth, true)} ${bnMonths[d.monthValue - 1]}"

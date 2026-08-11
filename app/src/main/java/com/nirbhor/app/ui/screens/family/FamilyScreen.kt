@@ -1,5 +1,6 @@
 package com.nirbhor.app.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -22,10 +24,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,6 +59,8 @@ fun FamilyScreen(actions: NavActions) {
     val colors = NirbhorTheme.colors
     val repo = LocalAppContainer.current.repository
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var inviteCode by rememberSaveable { mutableStateOf(newInviteCode()) }
     val caregiver by repo.primaryCaregiver.collectAsStateWithLifecycle(initialValue = null)
     val alerts by repo.alertLog().collectAsStateWithLifecycle(initialValue = emptyList())
 
@@ -60,7 +68,7 @@ fun FamilyScreen(actions: NavActions) {
         NirbhorTopBar(title = tr("পরিবার ও যত্নকারী", "Family & caregivers"), onBack = actions::back)
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(horizontal = Dimens.screenPadding, vertical = 16.dp),
+                .navigationBarsPadding().padding(horizontal = Dimens.screenPadding, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(Dimens.groupGap),
         ) {
             val cg = caregiver
@@ -103,7 +111,7 @@ fun FamilyScreen(actions: NavActions) {
                 Text(tr("এই কোডটি তাদের অ্যাপে দিতে বলুন", "Ask them to enter this code in their app"), style = NirbhorTheme.type.meta, color = colors.ink2)
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    "7K2P".forEach { c ->
+                    inviteCode.forEach { c ->
                         Box(Modifier.size(52.dp, 60.dp).clip(RoundedCornerShape(12.dp)).background(colors.card), contentAlignment = Alignment.Center) {
                             Text(c.toString(), fontSize = 28.sp, fontWeight = FontWeight(700), fontFamily = Archivo, color = colors.ink)
                         }
@@ -113,8 +121,22 @@ fun FamilyScreen(actions: NavActions) {
                 Text(tr("কোডটি ২৪ ঘণ্টা কার্যকর থাকবে", "The code works for 24 hours"), style = NirbhorTheme.type.meta, color = colors.ink3)
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PrimaryButton(tr("কোড পাঠান", "Send code"), actions::openCaregiverCode, height = 52.dp, modifier = Modifier.weight(1f))
-                    SecondaryButton(tr("নতুন কোড", "New code"), {}, height = 52.dp, modifier = Modifier.width(112.dp))
+                    PrimaryButton(
+                        tr("কোড পাঠান", "Send code"),
+                        {
+                            val message = if (context.resources.configuration.locales[0].language == "bn") {
+                                "নির্ভরে যুক্ত হতে এই কোডটি দিন: $inviteCode"
+                            } else {
+                                "Use this code to connect in Nirbhor: $inviteCode"
+                            }
+                            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, message)
+                            }, null))
+                        },
+                        height = 52.dp, modifier = Modifier.weight(1f),
+                    )
+                    SecondaryButton(tr("নতুন কোড", "New code"), { inviteCode = newInviteCode() }, height = 52.dp, modifier = Modifier.width(112.dp))
                 }
             }
 
@@ -128,6 +150,11 @@ fun FamilyScreen(actions: NavActions) {
             }
         }
     }
+}
+
+private fun newInviteCode(): String {
+    val alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    return buildString(4) { repeat(4) { append(alphabet.random()) } }
 }
 
 @Composable

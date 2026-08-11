@@ -94,7 +94,7 @@ fun MoreScreen(actions: NavActions) {
             HubRow(Icons.Filled.Settings, tr("সেটিংস", "Settings"),
                 tr("ভাষা, মনে করিয়ে দেওয়া, পড়ার সুবিধা", "Language, reminders, reading"), null, actions::openSettings)
             HubRow(Icons.AutoMirrored.Filled.HelpOutline, tr("সাহায্য", "Help"),
-                tr("সাধারণ প্রশ্ন ও যোগাযোগ", "FAQ and contact"), null) {}
+                tr("সাধারণ প্রশ্ন ও যোগাযোগ", "FAQ and contact"), null, actions::openHelp)
         }
 
         Text(tr("নির্ভর · সংস্করণ ১.০.০", "Nirbhor · version 1.0.0"),

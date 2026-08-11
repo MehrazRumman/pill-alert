@@ -30,6 +30,7 @@ object Routes {
     const val CAREGIVER_CODE = "caregiver_code"  // 6d
     const val DOCTOR_REPORT = "doctor_report"    // 6c
     const val SETTINGS = "settings"              // 2l/2i
+    const val HELP = "help"
     const val MEDICINE_DETAIL = "medicine/{id}"  // 5e
     fun medicineDetail(id: String) = "medicine/$id"
 

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -21,18 +22,24 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nirbhor.app.domain.FoodRelation
+import com.nirbhor.app.domain.Frequency
 import com.nirbhor.app.domain.LocalAddDraft
 import com.nirbhor.app.domain.TimeBlock
 import com.nirbhor.app.navigation.LocalAppContainer
 import com.nirbhor.app.navigation.NavActions
+import com.nirbhor.app.notifications.AlarmScheduler
 import com.nirbhor.app.ui.components.NbCard
 import com.nirbhor.app.ui.components.PrimaryButton
 import com.nirbhor.app.ui.components.TintPanel
@@ -53,8 +60,10 @@ fun AddReviewScreen(actions: NavActions) {
     val draft = LocalAddDraft.current
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val existing by container.repository.medicines.collectAsStateWithLifecycle(initialValue = emptyList())
     val duplicate = existing.any { it.displayName == draft.displayName && it.strength == draft.strength }
+    var saving by remember { mutableStateOf(false) }
 
     val bangla = LocalIsBangla.current
     val is24 = LocalIs24Hour.current
@@ -69,11 +78,17 @@ fun AddReviewScreen(actions: NavActions) {
     val foodWords = when (draft.foodRelation) {
         FoodRelation.BEFORE -> tr("খাবারের আগে", "before food"); FoodRelation.AFTER -> tr("খাবারের পরে", "after food"); FoodRelation.NONE -> tr("যেকোনো সময়", "any time")
     }
+    val frequencyWords = when (draft.frequency) {
+        Frequency.DAILY -> tr("প্রতিদিন", "Daily")
+        Frequency.ALTERNATE -> tr("একদিন পরপর", "Every other day")
+        Frequency.WEEKDAYS -> tr("কর্মদিবসে", "Weekdays")
+        Frequency.WEEKLY -> tr("নির্বাচিত দিনে", "Selected days")
+    }
 
     Column(Modifier.fillMaxSize().background(colors.paper)) {
         AddFlowHeader(step = 3, onBack = actions::back)
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Dimens.screenPadding, vertical = 8.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = Dimens.screenPadding, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(Dimens.groupGap),
         ) {
             Box(Modifier.size(64.dp).clip(RoundedCornerShape(18.dp)).background(colors.calmSoft), contentAlignment = Alignment.Center) {
@@ -105,7 +120,8 @@ fun AddReviewScreen(actions: NavActions) {
                     }
                 }
                 ReviewRow(tr("কখন", "When"), "$whenWords · $foodWords")
-                ReviewRow(tr("কতটা", "How much"), tr("${doseText(draft.dosePerIntake)} ${draft.form}", "${doseText(draft.dosePerIntake)} ${draft.form}"))
+                ReviewRow(tr("কত ঘন ঘন", "Frequency"), frequencyWords)
+                ReviewRow(tr("কতটা", "How much"), "${doseText(draft.dosePerIntake, bangla)} ${draft.form}")
                 if (draft.stockCount > 0) ReviewRow(tr("ঘরে আছে", "In stock"), tr("${num(draft.stockCount)}টি", "${draft.stockCount}"))
             }
 
@@ -113,8 +129,9 @@ fun AddReviewScreen(actions: NavActions) {
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(Dimens.radiusLargeCard)).background(colors.calmD).padding(18.dp)) {
                 Text(tr("অ্যালার্মে এমন দেখাবে", "The alarm will look like this"), style = NirbhorTheme.type.meta, color = colors.alarmText.copy(alpha = 0.7f))
                 Spacer(Modifier.height(8.dp))
-                val firstTime = draft.resolvedTimes.firstOrNull()?.substringBefore(":")?.toIntOrNull() ?: 8
-                Text(Numerals.time(firstTime, 0, bangla, is24), style = NirbhorTheme.type.header, color = colors.alarmText)
+                val (firstHour, firstMinute) = draft.resolvedTimes.firstOrNull()
+                    ?.let(com.nirbhor.app.domain.DoseScheduler::parseHhmm) ?: (8 to 0)
+                Text(Numerals.time(firstHour, firstMinute, bangla, is24), style = NirbhorTheme.type.header, color = colors.alarmText)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
                     MedicineMark(draft.mark, colors.markCalmOnDark, size = 34.dp)
                     Spacer(Modifier.width(12.dp))
@@ -125,13 +142,22 @@ fun AddReviewScreen(actions: NavActions) {
             PrimaryButton(
                 tr("যোগ করুন", "Add medicine"),
                 {
+                    if (saving) return@PrimaryButton
+                    saving = true
                     scope.launch {
-                        container.repository.upsertMedicine(draft.toMedicine())
-                        draft.reset()
+                        try {
+                            container.repository.upsertMedicine(draft.toMedicine())
+                            AlarmScheduler.rescheduleAll(context.applicationContext)
+                            draft.reset()
+                            actions.finishAddMedicine()
+                        } finally {
+                            saving = false
+                        }
                     }
-                    actions.finishAddMedicine()
                 },
-                height = 68.dp, modifier = Modifier.fillMaxWidth(),
+                height = 68.dp,
+                enabled = !saving && draft.displayName.isNotBlank() && draft.timeTokens.isNotEmpty(),
+                modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
         }
@@ -147,4 +173,4 @@ private fun ReviewRow(label: String, value: String) {
     }
 }
 
-private fun doseText(v: Float): String = if (v == 0.5f) "½" else v.toInt().toString()
+private fun doseText(v: Float, bangla: Boolean): String = if (v == 0.5f) "½" else Numerals.number(v.toInt(), bangla)

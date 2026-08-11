@@ -30,6 +30,7 @@ class NirbhorApp : Application() {
             // then arm reminders for upcoming doses.
             val today = LocalDate.now()
             for (i in 0..14) container.repository.ensureDosesFor(today.plusDays(i.toLong()))
+            container.repository.markOverdueDoses()
             com.nirbhor.app.notifications.AlarmScheduler.rescheduleAll(this@NirbhorApp)
         }
     }

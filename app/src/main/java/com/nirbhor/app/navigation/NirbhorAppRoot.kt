@@ -40,6 +40,7 @@ import com.nirbhor.app.ui.screens.CaregiverNotifyScreen
 import com.nirbhor.app.ui.screens.DoctorReportScreen
 import com.nirbhor.app.ui.screens.FamilyScreen
 import com.nirbhor.app.ui.screens.HomeScreen
+import com.nirbhor.app.ui.screens.HelpScreen
 import com.nirbhor.app.ui.screens.InboxScreen
 import com.nirbhor.app.ui.screens.MedicineDetailScreen
 import com.nirbhor.app.ui.screens.MoreScreen
@@ -60,7 +61,8 @@ import java.util.Locale
 fun NirbhorAppRoot() {
     val context = LocalContext.current
     val container = remember { (context.applicationContext as NirbhorApp).container }
-    val settings by container.settings.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
+    val settingsState = container.settings.settings.collectAsStateWithLifecycle<AppSettings?>(initialValue = null)
+    val settings = settingsState.value ?: return
 
     val deviceIsBangla = remember { Locale.getDefault().language == "bn" }
     val isBangla = settings.isBangla(deviceIsBangla)
@@ -68,7 +70,7 @@ fun NirbhorAppRoot() {
 
     val draft = remember { AddMedicineDraft() }
     val navController = rememberNavController()
-    val actions = remember(navController) { NavActions(navController) }
+    val actions = remember(navController, draft) { NavActions(navController, draft::reset) }
 
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
@@ -132,6 +134,7 @@ private fun NirbhorNavHost(
         composable(Routes.CAREGIVER_CODE) { CaregiverCodeScreen(actions) }
         composable(Routes.DOCTOR_REPORT) { DoctorReportScreen(actions) }
         composable(Routes.SETTINGS) { SettingsScreen(actions) }
+        composable(Routes.HELP) { HelpScreen(actions) }
 
         composable(
             Routes.MEDICINE_DETAIL,

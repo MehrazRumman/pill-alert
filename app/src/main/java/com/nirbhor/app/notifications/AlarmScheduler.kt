@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.nirbhor.app.data.NirbhorRepository
+import java.time.LocalDate
 
 /**
  * Schedules exact alarms for upcoming doses (README > Alarms: full-screen intent at each dose time).
@@ -16,13 +17,16 @@ object AlarmScheduler {
 
     const val EXTRA_DOSE_ID = "dose_id"
     const val EXTRA_EPOCH = "dose_epoch"
+    const val EXTRA_REPEAT_COUNT = "repeat_count"
     private const val ACTION_ALARM = "com.nirbhor.app.ACTION_ALARM"
+    private const val SCHEDULE_DAYS = 15
 
-    fun pendingIntent(context: Context, doseId: Long, epoch: Long): PendingIntent {
+    fun pendingIntent(context: Context, doseId: Long, epoch: Long, repeatCount: Int = 0): PendingIntent {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = ACTION_ALARM
             putExtra(EXTRA_DOSE_ID, doseId)
             putExtra(EXTRA_EPOCH, epoch)
+            putExtra(EXTRA_REPEAT_COUNT, repeatCount)
         }
         return PendingIntent.getBroadcast(
             context, doseId.toInt(), intent,
@@ -30,20 +34,40 @@ object AlarmScheduler {
         )
     }
 
+    fun scheduleRepeat(context: Context, doseId: Long, epoch: Long, repeatCount: Int) {
+        val am = context.getSystemService(AlarmManager::class.java) ?: return
+        val pi = pendingIntent(context, doseId, epoch, repeatCount)
+        schedule(am, epoch, pi)
+    }
+
     /** Reschedules alarms for all upcoming doses. Safe to call often. */
     suspend fun rescheduleAll(context: Context) {
         val am = context.getSystemService(AlarmManager::class.java) ?: return
         val repo = NirbhorRepository.get(context)
-        val doses = repo.upcomingDoses()
+        val today = LocalDate.now()
+        for (offset in 0 until SCHEDULE_DAYS) {
+            repo.ensureDosesFor(today.plusDays(offset.toLong()))
+        }
+        val doses = repo.upcomingDoses(SCHEDULE_DAYS * 24L * 60L * 60_000L)
         for (dose in doses) {
             val pi = pendingIntent(context, dose.id, dose.scheduledEpochMillis)
-            val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()
+            schedule(am, dose.scheduledEpochMillis, pi)
+        }
+    }
+
+    private fun schedule(am: AlarmManager, epoch: Long, pi: PendingIntent) {
+        val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()
+        try {
             if (canExact) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, dose.scheduledEpochMillis, pi)
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, epoch, pi)
             } else {
-                // Fall back to an inexact window if the user hasn't granted exact-alarm permission.
-                am.setWindow(AlarmManager.RTC_WAKEUP, dose.scheduledEpochMillis, 10 * 60_000L, pi)
+                // Still wake the device when exact-alarm access is unavailable. Android chooses
+                // the nearest battery-friendly delivery time.
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, epoch, pi)
             }
+        } catch (_: SecurityException) {
+            // Access can be revoked between canScheduleExactAlarms() and this call.
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, epoch, pi)
         }
     }
 

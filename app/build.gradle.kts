@@ -96,6 +96,8 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
+    implementation(libs.google.mlkit.text.recognition)
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.2")
+    testImplementation(libs.junit)
 }

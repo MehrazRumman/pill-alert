@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -68,7 +69,7 @@ fun AddSearchScreen(actions: NavActions) {
     Column(Modifier.fillMaxSize().background(colors.paper)) {
         NirbhorTopBar(title = tr("নাম দিয়ে যোগ করুন", "Add by name"), onBack = actions::back)
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Dimens.screenPadding, vertical = 12.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = Dimens.screenPadding, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(Dimens.cardGap),
         ) {
             Row(

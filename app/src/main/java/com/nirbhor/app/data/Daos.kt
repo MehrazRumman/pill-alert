@@ -33,6 +33,9 @@ interface MedicineDao {
     @Query("DELETE FROM medicines WHERE id = :id")
     suspend fun delete(id: String)
 
+    @Query("UPDATE medicines SET stockCount = MAX(0, stockCount + :delta), stockUpdatedAt = :updatedAt WHERE id = :id")
+    suspend fun adjustStock(id: String, delta: Int, updatedAt: Long)
+
     @Query("SELECT COUNT(*) FROM medicines")
     suspend fun count(): Int
 }
@@ -57,11 +60,23 @@ interface DoseDao {
     @Update
     suspend fun update(dose: DoseEntity)
 
-    @Query("UPDATE doses SET status = :status, confirmedAt = :confirmedAt, source = :source WHERE id = :id")
-    suspend fun setStatus(id: Long, status: String, confirmedAt: Long?, source: String?)
+    @Query("UPDATE doses SET status = :status, confirmedAt = :confirmedAt, source = :source WHERE id = :id AND status IN (:allowedStatuses)")
+    suspend fun setStatusIf(
+        id: Long,
+        status: String,
+        confirmedAt: Long?,
+        source: String?,
+        allowedStatuses: List<String>,
+    ): Int
 
     @Query("DELETE FROM doses WHERE medicineId = :medicineId AND scheduledEpochMillis >= :fromMillis AND status = 'UPCOMING'")
     suspend fun deleteUpcomingForMedicine(medicineId: String, fromMillis: Long)
+
+    @Query("DELETE FROM doses WHERE medicineId = :medicineId")
+    suspend fun deleteForMedicine(medicineId: String)
+
+    @Query("UPDATE doses SET status = 'MISSED' WHERE status = 'UPCOMING' AND scheduledEpochMillis < :cutoffMillis")
+    suspend fun markOverdue(cutoffMillis: Long): Int
 
     @Query("SELECT COUNT(*) FROM doses WHERE scheduledEpochMillis BETWEEN :startMillis AND :endMillis")
     suspend fun countBetween(startMillis: Long, endMillis: Long): Int

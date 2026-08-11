@@ -17,6 +17,7 @@ data class AppSettings(
     val repeatMax: Int = 3,
     val onboardingComplete: Boolean = false,
     val notificationPrimingShown: Boolean = false,
+    val inboxReadSignature: String = "",
 ) {
     /** Resolves the effective Bangla flag given the device's Bangla state. */
     fun isBangla(deviceIsBangla: Boolean): Boolean = when (localePref) {

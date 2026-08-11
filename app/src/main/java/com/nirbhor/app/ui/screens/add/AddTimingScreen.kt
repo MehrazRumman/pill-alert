@@ -5,12 +5,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -29,10 +32,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.nirbhor.app.domain.FoodRelation
+import com.nirbhor.app.domain.Frequency
 import com.nirbhor.app.domain.LocalAddDraft
 import com.nirbhor.app.domain.TimeBlock
 import com.nirbhor.app.navigation.NavActions
 import com.nirbhor.app.ui.components.PrimaryButton
+import com.nirbhor.app.ui.components.QuickChip
+import com.nirbhor.app.ui.components.SegmentedControl
 import com.nirbhor.app.ui.components.SelectableRow
 import com.nirbhor.app.ui.components.TintPanel
 import com.nirbhor.app.ui.i18n.tr
@@ -56,7 +62,7 @@ fun AddTimingScreen(actions: NavActions) {
     Column(Modifier.fillMaxSize().background(colors.paper)) {
         AddFlowHeader(step = 1, onBack = actions::back)
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Dimens.screenPadding, vertical = 8.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = Dimens.screenPadding, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(Dimens.groupGap),
         ) {
             Text(tr("কখন খাবেন?", "When do you take it?"), style = NirbhorTheme.type.titleHero, color = colors.ink)
@@ -64,6 +70,53 @@ fun AddTimingScreen(actions: NavActions) {
                 TimeChoice(Icons.Filled.WbSunny, tr("সকাল", "Morning"), TimeBlock.MORNING.token in draft.timeTokens) { toggle(TimeBlock.MORNING.token) }
                 TimeChoice(Icons.Filled.Brightness5, tr("দুপুর", "Afternoon"), TimeBlock.NOON.token in draft.timeTokens) { toggle(TimeBlock.NOON.token) }
                 TimeChoice(Icons.Filled.DarkMode, tr("রাত", "Night"), TimeBlock.NIGHT.token in draft.timeTokens) { toggle(TimeBlock.NIGHT.token) }
+            }
+
+            Text(tr("কত ঘন ঘন?", "How often?"), style = NirbhorTheme.type.header, color = colors.ink)
+            SegmentedControl(
+                options = listOf(tr("প্রতিদিন", "Daily"), tr("একদিন পরপর", "Alternate"), tr("দিন বেছে", "Select days")),
+                selectedIndex = when (draft.frequency) {
+                    Frequency.DAILY -> 0
+                    Frequency.ALTERNATE -> 1
+                    Frequency.WEEKDAYS, Frequency.WEEKLY -> 2
+                },
+                onSelect = { index ->
+                    draft.frequency = when (index) {
+                        1 -> Frequency.ALTERNATE
+                        2 -> Frequency.WEEKLY
+                        else -> Frequency.DAILY
+                    }
+                    if (index == 2 && draft.weekdaysMask == 0) {
+                        draft.weekdaysMask = com.nirbhor.app.domain.DoseScheduler.weekdayBit(java.time.LocalDate.now().dayOfWeek)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (draft.frequency == Frequency.WEEKLY || draft.frequency == Frequency.WEEKDAYS) {
+                val dayLabels = listOf(
+                    tr("সোম", "Mon"), tr("মঙ্গল", "Tue"), tr("বুধ", "Wed"), tr("বৃহঃ", "Thu"),
+                    tr("শুক্র", "Fri"), tr("শনি", "Sat"), tr("রবি", "Sun"),
+                )
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    maxItemsInEachRow = 4,
+                ) {
+                    dayLabels.forEachIndexed { index, label ->
+                        val bit = 1 shl index
+                        QuickChip(
+                            label = label,
+                            selected = draft.weekdaysMask and bit != 0,
+                            onClick = {
+                                val next = draft.weekdaysMask xor bit
+                                if (next != 0) draft.weekdaysMask = next
+                            },
+                            modifier = Modifier.width(76.dp),
+                            height = 48.dp,
+                        )
+                    }
+                }
             }
 
             Text(tr("খাবারের আগে না পরে?", "Before or after food?"), style = NirbhorTheme.type.header, color = colors.ink)

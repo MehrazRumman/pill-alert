@@ -1,5 +1,6 @@
 package com.nirbhor.app.ui.screens
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -103,8 +104,13 @@ fun OnboardingScreen(actions: NavActions) {
                 .fillMaxWidth().height(62.dp)
                 .clip(RoundedCornerShape(16.dp)).background(colors.paper)
                 .clickable {
-                    scope.launch { container.settings.setOnboardingComplete(true) }
-                    actions.finishOnboarding()
+                    scope.launch {
+                        container.settings.setOnboardingComplete(true)
+                        actions.finishOnboarding()
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            actions.openPermissionPriming()
+                        }
+                    }
                 }
                 .padding(horizontal = 22.dp),
             verticalAlignment = Alignment.CenterVertically,

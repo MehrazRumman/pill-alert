@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -25,9 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -43,6 +42,8 @@ import com.nirbhor.app.ui.i18n.num
 import com.nirbhor.app.ui.i18n.tr
 import com.nirbhor.app.ui.theme.Dimens
 import com.nirbhor.app.ui.theme.NirbhorTheme
+import com.nirbhor.app.domain.AppSettings
+import kotlinx.coroutines.launch
 
 private data class InboxItem(val icon: ImageVector, val title: String, val body: String, val amber: Boolean, val onClick: (() -> Unit)? = null)
 
@@ -50,10 +51,12 @@ private data class InboxItem(val icon: ImageVector, val title: String, val body:
 @Composable
 fun InboxScreen(actions: NavActions) {
     val colors = NirbhorTheme.colors
-    val repo = LocalAppContainer.current.repository
+    val container = LocalAppContainer.current
+    val repo = container.repository
+    val scope = rememberCoroutineScope()
+    val settings by container.settings.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
     val stock by repo.stockStatuses().collectAsStateWithLifecycle(initialValue = emptyList())
     val meds by repo.medicines.collectAsStateWithLifecycle(initialValue = emptyList())
-    var allRead by remember { mutableStateOf(false) }
 
     // Real, derived notifications only — one low-stock note per medicine that's running low.
     val lowMeds = meds.filter { m -> stock.firstOrNull { it.medicineId == m.id }?.isLow == true }
@@ -66,17 +69,21 @@ fun InboxScreen(actions: NavActions) {
         )
     }
     val earlier = emptyList<InboxItem>()
+    val signature = lowMeds.map { it.id }.sorted().joinToString("|")
+    val allRead = signature.isNotEmpty() && settings.inboxReadSignature == signature
 
     Column(Modifier.fillMaxSize().background(colors.paper)) {
         NirbhorTopBar(
             title = tr("খবর", "Notifications"), onBack = actions::back,
             trailing = {
                 Text(tr("সব পড়া হয়েছে", "Mark all read"), style = NirbhorTheme.type.cardTitleSecondary, color = colors.calm,
-                    modifier = Modifier.clickable { allRead = true }.padding(6.dp))
+                    modifier = Modifier.clickable(enabled = signature.isNotEmpty()) {
+                        scope.launch { container.settings.setInboxReadSignature(signature) }
+                    }.padding(6.dp))
             },
         )
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Dimens.screenPadding, vertical = 12.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = Dimens.screenPadding, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             if (today.isEmpty() && earlier.isEmpty()) {

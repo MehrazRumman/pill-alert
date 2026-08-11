@@ -28,6 +28,7 @@ class SettingsStore(private val context: Context) {
         val repeatMax = intPreferencesKey("repeat_max")
         val onboarding = booleanPreferencesKey("onboarding_complete")
         val priming = booleanPreferencesKey("priming_shown")
+        val inboxReadSignature = stringPreferencesKey("inbox_read_signature")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -42,6 +43,7 @@ class SettingsStore(private val context: Context) {
             repeatMax = p[Keys.repeatMax] ?: 3,
             onboardingComplete = p[Keys.onboarding] ?: false,
             notificationPrimingShown = p[Keys.priming] ?: false,
+            inboxReadSignature = p[Keys.inboxReadSignature] ?: "",
         )
     }
 
@@ -53,8 +55,13 @@ class SettingsStore(private val context: Context) {
     suspend fun setReadAloud(v: Boolean) = edit { it[Keys.readAloud] = v }
     suspend fun setFullScreenAlarm(v: Boolean) = edit { it[Keys.fullScreenAlarm] = v }
     suspend fun setAlarmSound(v: String) = edit { it[Keys.alarmSound] = v }
+    suspend fun setRepeat(everyMinutes: Int, maxRepeats: Int) = edit {
+        it[Keys.repeatEvery] = everyMinutes.coerceIn(1, 60)
+        it[Keys.repeatMax] = maxRepeats.coerceIn(0, 10)
+    }
     suspend fun setOnboardingComplete(v: Boolean) = edit { it[Keys.onboarding] = v }
     suspend fun setPrimingShown(v: Boolean) = edit { it[Keys.priming] = v }
+    suspend fun setInboxReadSignature(v: String) = edit { it[Keys.inboxReadSignature] = v }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
         context.dataStore.edit(block)

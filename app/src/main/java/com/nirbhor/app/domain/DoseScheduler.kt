@@ -55,6 +55,7 @@ object DoseScheduler {
         if (parts.size != 2) return null
         val h = parts[0].toIntOrNull() ?: return null
         val m = parts[1].toIntOrNull() ?: return null
+        if (h !in 0..23 || m !in 0..59) return null
         return h to m
     }
 

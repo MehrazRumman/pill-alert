@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -69,14 +70,19 @@ fun RefillScreen(actions: NavActions) {
             NirbhorTopBar(title = tr("রিফিল ও মজুত", "Refill & stock"), onBack = actions::back)
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                    .padding(horizontal = Dimens.screenPadding, vertical = 16.dp),
+                    .navigationBarsPadding().padding(horizontal = Dimens.screenPadding, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(Dimens.groupGap),
             ) {
                 if (lowest != null && lowestStock != null && lowestStock.isLow) {
                     LowAlertCard(lowest, lowestStock) { restockFor = lowest }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(Dimens.cardGap)) {
-                    medicines.forEach { m -> StockRow(m, stockById[m.id]) }
+                    if (medicines.isEmpty()) {
+                        Text(tr("এখনও কোনো ওষুধ যোগ করা হয়নি।", "No medicines have been added yet."), style = NirbhorTheme.type.body, color = colors.ink2)
+                        PrimaryButton(tr("ওষুধ যোগ করুন", "Add a medicine"), actions::startAddMedicine, modifier = Modifier.fillMaxWidth())
+                    } else {
+                        medicines.forEach { m -> StockRow(m, stockById[m.id]) { restockFor = m } }
+                    }
                 }
                 TintPanel(background = colors.sage) {
                     Text(
@@ -150,7 +156,7 @@ private fun SegmentBar(filled: Int) {
 }
 
 @Composable
-private fun StockRow(med: Medicine, stock: StockStatus?) {
+private fun StockRow(med: Medicine, stock: StockStatus?, onRestock: () -> Unit) {
     val colors = NirbhorTheme.colors
     val days = stock?.daysRemaining ?: 0
     val low = stock?.isLow == true
@@ -174,6 +180,8 @@ private fun StockRow(med: Medicine, stock: StockStatus?) {
             val frac = (days / 30f).coerceIn(0f, 1f)
             Box(Modifier.fillMaxWidth(frac).height(8.dp).clip(RoundedCornerShape(4.dp)).background(if (low) colors.warm else colors.calm))
         }
+        Spacer(Modifier.height(10.dp))
+        PrimaryButton(tr("মজুত আপডেট করুন", "Update stock"), onRestock, height = 48.dp, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -201,9 +209,17 @@ private fun RestockSheet(medicine: Medicine, current: Int, onAdd: (Int) -> Unit)
         }
         Spacer(Modifier.height(14.dp))
         val result = current + amount.toInt()
+        val scheduledDaysPerWeek = when (medicine.frequency) {
+            com.nirbhor.app.domain.Frequency.DAILY -> 7f
+            com.nirbhor.app.domain.Frequency.ALTERNATE -> 3.5f
+            com.nirbhor.app.domain.Frequency.WEEKDAYS, com.nirbhor.app.domain.Frequency.WEEKLY ->
+                Integer.bitCount(medicine.weekdaysMask and 0x7F).coerceAtLeast(1).toFloat()
+        }
+        val perDay = (medicine.timeTokens.size.coerceAtLeast(1) * medicine.dosePerIntake * scheduledDaysPerWeek / 7f).coerceAtLeast(0.1f)
+        val days = (result / perDay).toInt()
         TintPanel(background = colors.calmSoft) {
             Text(
-                tr("ঘরে হবে ${num(result)}টি — ${num(result)} দিন চলবে।", "You'll have ${result} — about ${result} days."),
+                tr("ঘরে হবে ${num(result)}টি — প্রায় ${num(days)} দিন চলবে।", "You'll have ${result} — about ${days} days."),
                 style = NirbhorTheme.type.body, color = colors.calmD,
             )
         }

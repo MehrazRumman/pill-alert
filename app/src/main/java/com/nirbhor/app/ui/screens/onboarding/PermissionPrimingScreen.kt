@@ -3,6 +3,11 @@ package com.nirbhor.app.ui.screens
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.app.AlarmManager
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -47,23 +53,44 @@ import kotlinx.coroutines.launch
 fun PermissionPrimingScreen(actions: NavActions) {
     val colors = NirbhorTheme.colors
     val container = LocalAppContainer.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+    fun finishPriming() {
         scope.launch { container.settings.setPrimingShown(true) }
         actions.back()
+    }
+    val exactAlarmLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        finishPriming()
+    }
+    fun askForExactAlarmOrFinish() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(AlarmManager::class.java)
+            if (alarmManager?.canScheduleExactAlarms() == false) {
+                exactAlarmLauncher.launch(
+                    Intent(
+                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                        Uri.parse("package:${context.packageName}"),
+                    ),
+                )
+                return
+            }
+        }
+        finishPriming()
+    }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        askForExactAlarmOrFinish()
     }
     fun ask() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         } else {
-            scope.launch { container.settings.setPrimingShown(true) }
-            actions.back()
+            askForExactAlarmOrFinish()
         }
     }
 
     Column(
-        Modifier.fillMaxSize().background(colors.paper).verticalScroll(rememberScrollState())
+        Modifier.fillMaxSize().background(colors.paper).verticalScroll(rememberScrollState()).systemBarsPadding()
             .padding(horizontal = Dimens.screenPadding).padding(top = 40.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
@@ -95,8 +122,7 @@ fun PermissionPrimingScreen(actions: NavActions) {
         Box(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
                 .clickable {
-                    scope.launch { container.settings.setPrimingShown(true) }
-                    actions.back()
+                    finishPriming()
                 }
                 .padding(vertical = 10.dp),
             contentAlignment = Alignment.Center,

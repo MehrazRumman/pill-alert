@@ -36,15 +36,25 @@ class NirbhorRepository private constructor(
     fun medicine(id: String): Flow<Medicine?> = medicineDao.observe(id).map { it?.toDomain() }
 
     suspend fun upsertMedicine(medicine: Medicine) {
-        medicineDao.upsert(medicine.toEntity())
-        regenerateUpcoming(medicine.id)
+        val existing = medicineDao.get(medicine.id)
+        medicineDao.upsert(medicine.toEntity(createdAt = existing?.createdAt ?: System.currentTimeMillis()))
+        val scheduleChanged = existing == null || existing.toDomain().let { old ->
+            old.frequency != medicine.frequency ||
+                old.weekdaysMask != medicine.weekdaysMask ||
+                old.timeTokens != medicine.timeTokens ||
+                old.resolvedTimes != medicine.resolvedTimes ||
+                old.paused != medicine.paused
+        }
+        if (scheduleChanged) regenerateUpcoming(medicine.id)
     }
 
-    suspend fun deleteMedicine(id: String) = medicineDao.delete(id)
+    suspend fun deleteMedicine(id: String) {
+        doseDao.deleteForMedicine(id)
+        medicineDao.delete(id)
+    }
 
     suspend fun addStock(id: String, delta: Int) {
-        val m = medicineDao.get(id) ?: return
-        medicineDao.setStock(id, (m.stockCount + delta).coerceAtLeast(0), System.currentTimeMillis())
+        medicineDao.adjustStock(id, delta, System.currentTimeMillis())
     }
 
     suspend fun setStock(id: String, count: Int) {
@@ -109,39 +119,83 @@ class NirbhorRepository private constructor(
         }
     }
 
-    suspend fun markTaken(doseId: Long, source: DoseSource = DoseSource.HOME, late: Boolean = false) {
+    suspend fun markTaken(doseId: Long, source: DoseSource = DoseSource.HOME, late: Boolean? = null) {
         val dose = doseDao.get(doseId) ?: return
-        val status = if (late) DoseStatus.TAKEN_LATE else DoseStatus.TAKEN
-        doseDao.setStatus(doseId, status.name, System.currentTimeMillis(), source.name)
+        val now = System.currentTimeMillis()
+        val wasLate = late ?: (now > dose.scheduledEpochMillis + 30 * 60_000L)
+        val status = if (wasLate) DoseStatus.TAKEN_LATE else DoseStatus.TAKEN
+        val changed = doseDao.setStatusIf(
+            id = doseId,
+            status = status.name,
+            confirmedAt = now,
+            source = source.name,
+            allowedStatuses = listOf(DoseStatus.UPCOMING.name, DoseStatus.MISSED.name, DoseStatus.SKIPPED.name),
+        )
+        if (changed == 0) return
         // Decrement stock by the medicine's dose (rounded up for halves).
         val m = medicineDao.get(dose.medicineId) ?: return
         val used = ceil(m.dosePerIntake.toDouble()).toInt().coerceAtLeast(1)
-        medicineDao.setStock(m.id, (m.stockCount - used).coerceAtLeast(0), System.currentTimeMillis())
+        medicineDao.adjustStock(m.id, -used, System.currentTimeMillis())
     }
 
     suspend fun undoTaken(doseId: Long) {
         val dose = doseDao.get(doseId) ?: return
-        doseDao.setStatus(doseId, DoseStatus.UPCOMING.name, null, null)
+        val changed = doseDao.setStatusIf(
+            id = doseId,
+            status = DoseStatus.UPCOMING.name,
+            confirmedAt = null,
+            source = null,
+            allowedStatuses = listOf(DoseStatus.TAKEN.name, DoseStatus.TAKEN_LATE.name),
+        )
+        if (changed == 0) return
         val m = medicineDao.get(dose.medicineId) ?: return
         val used = ceil(m.dosePerIntake.toDouble()).toInt().coerceAtLeast(1)
-        medicineDao.setStock(m.id, m.stockCount + used, System.currentTimeMillis())
+        medicineDao.adjustStock(m.id, used, System.currentTimeMillis())
     }
 
     suspend fun skipDose(doseId: Long, source: DoseSource = DoseSource.RECOVERY_SHEET) {
-        doseDao.setStatus(doseId, DoseStatus.SKIPPED.name, System.currentTimeMillis(), source.name)
+        doseDao.setStatusIf(
+            id = doseId,
+            status = DoseStatus.SKIPPED.name,
+            confirmedAt = System.currentTimeMillis(),
+            source = source.name,
+            allowedStatuses = listOf(DoseStatus.UPCOMING.name, DoseStatus.MISSED.name),
+        )
+    }
+
+    /** Marks unanswered doses missed after a grace period, keeping adherence records truthful. */
+    suspend fun markOverdueDoses(graceMinutes: Int = 30) {
+        val cutoff = System.currentTimeMillis() - graceMinutes.coerceAtLeast(0).toLong() * 60_000L
+        doseDao.markOverdue(cutoff)
     }
 
     /** Snooze +10 min (repeats handled by the alarm scheduler); shifts the scheduled time. */
     suspend fun snoozeDose(doseId: Long, minutes: Int = 10) {
         val dose = doseDao.get(doseId) ?: return
-        doseDao.update(dose.copy(scheduledEpochMillis = dose.scheduledEpochMillis + minutes * 60_000L))
+        if (dose.status != DoseStatus.UPCOMING.name || minutes <= 0) return
+        val shiftedEpoch = dose.scheduledEpochMillis + minutes.toLong() * 60_000L
+        val shiftedTime = java.time.Instant.ofEpochMilli(shiftedEpoch).atZone(zone).toLocalTime()
+        doseDao.update(
+            dose.copy(
+                scheduledEpochMillis = shiftedEpoch,
+                hour = shiftedTime.hour,
+                minute = shiftedTime.minute,
+            ),
+        )
     }
 
     // ---- Derivations ------------------------------------------------------
 
     fun stockStatuses(): Flow<List<StockStatus>> = medicines.map { meds ->
         meds.map { m ->
-            val perDay = m.timeTokens.size.coerceAtLeast(1) * m.dosePerIntake
+            val dosesPerScheduledDay = m.timeTokens.size.coerceAtLeast(1) * m.dosePerIntake
+            val scheduledDaysPerWeek = when (m.frequency) {
+                com.nirbhor.app.domain.Frequency.DAILY -> 7f
+                com.nirbhor.app.domain.Frequency.ALTERNATE -> 3.5f
+                com.nirbhor.app.domain.Frequency.WEEKDAYS, com.nirbhor.app.domain.Frequency.WEEKLY ->
+                    Integer.bitCount(m.weekdaysMask and 0x7F).coerceAtLeast(1).toFloat()
+            }
+            val perDay = dosesPerScheduledDay * (scheduledDaysPerWeek / 7f)
             val days = if (perDay <= 0f) Int.MAX_VALUE else (m.stockCount / perDay).toInt()
             val runsOut = if (days == Int.MAX_VALUE) null else
                 LocalDate.now(zone).plusDays(days.toLong()).atStartOfDay(zone).toInstant().toEpochMilli()
@@ -183,7 +237,7 @@ class NirbhorRepository private constructor(
     /** Upcoming doses within [withinMillis] from now — used by the alarm scheduler. */
     suspend fun upcomingDoses(withinMillis: Long = 48L * 3600_000L): List<DoseOccurrence> {
         val now = System.currentTimeMillis()
-        return doseDao.getBetween(now - 60_000, now + withinMillis).map { it.toDomain() }
+        return doseDao.getBetween(now, now + withinMillis).map { it.toDomain() }
             .filter { it.status == DoseStatus.UPCOMING }
             .sortedBy { it.scheduledEpochMillis }
     }
@@ -223,6 +277,8 @@ class NirbhorRepository private constructor(
             val state = when {
                 date.isAfter(today) -> DayState.FUTURE
                 d.isEmpty() -> DayState.EMPTY
+                date == today && d.any { it.status == DoseStatus.UPCOMING } ->
+                    if (d.any { it.status == DoseStatus.TAKEN || it.status == DoseStatus.TAKEN_LATE }) DayState.PARTIAL else DayState.FUTURE
                 d.all { it.status == DoseStatus.TAKEN || it.status == DoseStatus.TAKEN_LATE } -> DayState.FULL
                 d.all { it.status == DoseStatus.MISSED || it.status == DoseStatus.SKIPPED } -> DayState.MISSED
                 d.any { it.status == DoseStatus.TAKEN || it.status == DoseStatus.TAKEN_LATE } -> DayState.PARTIAL
