@@ -46,311 +46,304 @@
 27        android:protectionLevel="signature" />
 27-->[androidx.core:core:1.13.1] /Users/rumman/.gradle/caches/8.11.1/transforms/b6f10c3df6a7e9a1220e7faa247f331c/transformed/core-1.13.1/AndroidManifest.xml:24:9-44
 28
-29    <uses-permission android:name="com.nirbhor.app.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" /> <!-- Although the *SdkVersion is captured in gradle build files, this is required for non gradle builds -->
+29    <uses-permission android:name="com.nirbhor.app.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
 29-->[androidx.core:core:1.13.1] /Users/rumman/.gradle/caches/8.11.1/transforms/b6f10c3df6a7e9a1220e7faa247f331c/transformed/core-1.13.1/AndroidManifest.xml:26:5-97
 29-->[androidx.core:core:1.13.1] /Users/rumman/.gradle/caches/8.11.1/transforms/b6f10c3df6a7e9a1220e7faa247f331c/transformed/core-1.13.1/AndroidManifest.xml:26:22-94
-30    <!-- <uses-sdk android:minSdkVersion="14"/> -->
-31    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-31-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:25:5-79
-31-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:25:22-76
-32    <uses-permission android:name="android.permission.INTERNET" />
-32-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:26:5-67
-32-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:26:22-64
-33
-34    <application
-34-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:16:5-76:19
-35        android:name="com.nirbhor.app.NirbhorApp"
-35-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:17:9-35
-36        android:allowBackup="true"
-36-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:18:9-35
-37        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-37-->[androidx.core:core:1.13.1] /Users/rumman/.gradle/caches/8.11.1/transforms/b6f10c3df6a7e9a1220e7faa247f331c/transformed/core-1.13.1/AndroidManifest.xml:28:18-86
-38        android:dataExtractionRules="@xml/data_extraction_rules"
-38-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:19:9-65
-39        android:debuggable="true"
-40        android:extractNativeLibs="false"
-41        android:fullBackupContent="@xml/backup_rules"
-41-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:20:9-54
-42        android:icon="@mipmap/ic_launcher"
-42-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:21:9-43
-43        android:label="@string/app_name"
-43-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:22:9-41
-44        android:roundIcon="@mipmap/ic_launcher_round"
-44-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:23:9-54
-45        android:supportsRtl="false"
-45-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:24:9-36
-46        android:theme="@style/Theme.Nirbhor" >
-46-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:25:9-45
-47        <activity
-47-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:28:9-37:20
-48            android:name="com.nirbhor.app.MainActivity"
-48-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:29:13-41
-49            android:exported="true"
-49-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:30:13-36
-50            android:theme="@style/Theme.Nirbhor"
-50-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:31:13-49
-51            android:windowSoftInputMode="adjustResize" >
-51-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:32:13-55
-52            <intent-filter>
-52-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:33:13-36:29
-53                <action android:name="android.intent.action.MAIN" />
-53-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:34:17-69
-53-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:34:25-66
-54
-55                <category android:name="android.intent.category.LAUNCHER" />
-55-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:35:17-77
-55-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:35:27-74
-56            </intent-filter>
-57        </activity>
-58
-59        <!-- Full-screen alarm activity (shows over the lock screen). Wired in task 5. -->
-60        <activity
-60-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:40:9-48:43
-61            android:name="com.nirbhor.app.notifications.AlarmActivity"
-61-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:41:13-56
-62            android:excludeFromRecents="true"
-62-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:42:13-46
-63            android:exported="false"
-63-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:43:13-37
-64            android:launchMode="singleInstance"
-64-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:44:13-48
-65            android:showWhenLocked="true"
-65-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:45:13-42
-66            android:taskAffinity=""
-66-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:46:13-36
-67            android:theme="@style/Theme.Nirbhor.Alarm"
-67-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:47:13-55
-68            android:turnScreenOn="true" />
-68-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:48:13-40
-69
+30
+31    <application
+31-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:20:5-80:19
+32        android:name="com.nirbhor.app.NirbhorApp"
+32-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:21:9-35
+33        android:allowBackup="true"
+33-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:22:9-35
+34        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+34-->[androidx.core:core:1.13.1] /Users/rumman/.gradle/caches/8.11.1/transforms/b6f10c3df6a7e9a1220e7faa247f331c/transformed/core-1.13.1/AndroidManifest.xml:28:18-86
+35        android:dataExtractionRules="@xml/data_extraction_rules"
+35-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:23:9-65
+36        android:debuggable="true"
+37        android:extractNativeLibs="false"
+38        android:fullBackupContent="@xml/backup_rules"
+38-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:24:9-54
+39        android:icon="@mipmap/ic_launcher"
+39-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:25:9-43
+40        android:label="@string/app_name"
+40-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:26:9-41
+41        android:roundIcon="@mipmap/ic_launcher_round"
+41-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:27:9-54
+42        android:supportsRtl="false"
+42-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:28:9-36
+43        android:theme="@style/Theme.Nirbhor" >
+43-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:29:9-45
+44        <activity
+44-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:32:9-41:20
+45            android:name="com.nirbhor.app.MainActivity"
+45-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:33:13-41
+46            android:exported="true"
+46-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:34:13-36
+47            android:theme="@style/Theme.Nirbhor"
+47-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:35:13-49
+48            android:windowSoftInputMode="adjustResize" >
+48-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:36:13-55
+49            <intent-filter>
+49-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:37:13-40:29
+50                <action android:name="android.intent.action.MAIN" />
+50-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:38:17-69
+50-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:38:25-66
+51
+52                <category android:name="android.intent.category.LAUNCHER" />
+52-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:39:17-77
+52-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:39:27-74
+53            </intent-filter>
+54        </activity>
+55
+56        <!-- Full-screen alarm activity (shows over the lock screen). Wired in task 5. -->
+57        <activity
+57-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:44:9-52:43
+58            android:name="com.nirbhor.app.notifications.AlarmActivity"
+58-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:45:13-56
+59            android:excludeFromRecents="true"
+59-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:46:13-46
+60            android:exported="false"
+60-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:47:13-37
+61            android:launchMode="singleInstance"
+61-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:48:13-48
+62            android:showWhenLocked="true"
+62-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:49:13-42
+63            android:taskAffinity=""
+63-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:50:13-36
+64            android:theme="@style/Theme.Nirbhor.Alarm"
+64-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:51:13-55
+65            android:turnScreenOn="true" />
+65-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:52:13-40
+66
+67        <receiver
+67-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:54:9-56:40
+68            android:name="com.nirbhor.app.notifications.AlarmReceiver"
+68-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:55:13-56
+69            android:exported="false" />
+69-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:56:13-37
 70        <receiver
-70-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:50:9-52:40
-71            android:name="com.nirbhor.app.notifications.AlarmReceiver"
-71-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:51:13-56
-72            android:exported="false" />
-72-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:52:13-37
-73        <receiver
-73-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:54:9-64:20
-74            android:name="com.nirbhor.app.notifications.BootReceiver"
-74-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:55:13-55
-75            android:exported="true" >
-75-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:56:13-36
-76            <intent-filter>
-76-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:57:13-63:29
-77                <action android:name="android.intent.action.BOOT_COMPLETED" />
-77-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:58:17-79
-77-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:58:25-76
-78                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-78-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:59:17-84
-78-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:59:25-81
-79                <action android:name="android.intent.action.TIME_SET" />
-79-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:60:17-73
-79-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:60:25-70
-80                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
-80-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:61:17-81
-80-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:61:25-78
-81                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
-81-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:62:17-107
-81-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:62:25-104
-82            </intent-filter>
-83        </receiver>
-84
-85        <provider
-86            android:name="androidx.core.content.FileProvider"
-86-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:67:13-62
-87            android:authorities="com.nirbhor.app.debug.fileprovider"
-87-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:68:13-64
-88            android:exported="false"
-88-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:69:13-37
-89            android:grantUriPermissions="true" >
-89-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:70:13-47
-90            <meta-data
-90-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:71:13-73:54
-91                android:name="android.support.FILE_PROVIDER_PATHS"
-91-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:72:17-67
-92                android:resource="@xml/file_paths" />
-92-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:73:17-51
-93        </provider>
-94
-95        <service
-95-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:24:9-33:19
-96            android:name="androidx.camera.core.impl.MetadataHolderService"
-96-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:25:13-75
-97            android:enabled="false"
-97-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:26:13-36
-98            android:exported="false" >
-98-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:27:13-37
-99            <meta-data
-99-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:30:13-32:89
-100                android:name="androidx.camera.core.impl.MetadataHolderService.DEFAULT_CONFIG_PROVIDER"
-100-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:31:17-103
-101                android:value="androidx.camera.camera2.Camera2Config$DefaultProvider" />
-101-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:32:17-86
-102        </service>
-103        <service
-103-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:9:9-15:19
-104            android:name="com.google.mlkit.common.internal.MlKitComponentDiscoveryService"
-104-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:10:13-91
-105            android:directBootAware="true"
-105-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:17:13-43
-106            android:exported="false" >
-106-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:11:13-37
+70-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:58:9-68:20
+71            android:name="com.nirbhor.app.notifications.BootReceiver"
+71-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:59:13-55
+72            android:exported="true" >
+72-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:60:13-36
+73            <intent-filter>
+73-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:61:13-67:29
+74                <action android:name="android.intent.action.BOOT_COMPLETED" />
+74-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:62:17-79
+74-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:62:25-76
+75                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+75-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:63:17-84
+75-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:63:25-81
+76                <action android:name="android.intent.action.TIME_SET" />
+76-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:64:17-73
+76-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:64:25-70
+77                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+77-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:65:17-81
+77-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:65:25-78
+78                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+78-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:66:17-107
+78-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:66:25-104
+79            </intent-filter>
+80        </receiver>
+81
+82        <provider
+83            android:name="androidx.core.content.FileProvider"
+83-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:71:13-62
+84            android:authorities="com.nirbhor.app.debug.fileprovider"
+84-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:72:13-64
+85            android:exported="false"
+85-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:73:13-37
+86            android:grantUriPermissions="true" >
+86-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:74:13-47
+87            <meta-data
+87-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:75:13-77:54
+88                android:name="android.support.FILE_PROVIDER_PATHS"
+88-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:76:17-67
+89                android:resource="@xml/file_paths" />
+89-->/Users/rumman/pill-alert/app/src/main/AndroidManifest.xml:77:17-51
+90        </provider>
+91
+92        <service
+92-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:24:9-33:19
+93            android:name="androidx.camera.core.impl.MetadataHolderService"
+93-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:25:13-75
+94            android:enabled="false"
+94-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:26:13-36
+95            android:exported="false" >
+95-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:27:13-37
+96            <meta-data
+96-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:30:13-32:89
+97                android:name="androidx.camera.core.impl.MetadataHolderService.DEFAULT_CONFIG_PROVIDER"
+97-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:31:17-103
+98                android:value="androidx.camera.camera2.Camera2Config$DefaultProvider" />
+98-->[androidx.camera:camera-camera2:1.3.4] /Users/rumman/.gradle/caches/8.11.1/transforms/86bb0fdf60427b5858168891433020a9/transformed/camera-camera2-1.3.4/AndroidManifest.xml:32:17-86
+99        </service>
+100        <service
+100-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:9:9-15:19
+101            android:name="com.google.mlkit.common.internal.MlKitComponentDiscoveryService"
+101-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:10:13-91
+102            android:directBootAware="true"
+102-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:17:13-43
+103            android:exported="false" >
+103-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:11:13-37
+104            <meta-data
+104-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:12:13-14:85
+105                android:name="com.google.firebase.components:com.google.mlkit.vision.text.internal.TextRegistrar"
+105-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:13:17-114
+106                android:value="com.google.firebase.components.ComponentRegistrar" />
+106-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:14:17-82
 107            <meta-data
-107-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:12:13-14:85
-108                android:name="com.google.firebase.components:com.google.mlkit.vision.text.internal.TextRegistrar"
-108-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:13:17-114
+107-->[com.google.mlkit:vision-common:17.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/3ea4c5ec75d1a28160a54cde37bd7735/transformed/vision-common-17.3.0/AndroidManifest.xml:12:13-14:85
+108                android:name="com.google.firebase.components:com.google.mlkit.vision.common.internal.VisionCommonRegistrar"
+108-->[com.google.mlkit:vision-common:17.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/3ea4c5ec75d1a28160a54cde37bd7735/transformed/vision-common-17.3.0/AndroidManifest.xml:13:17-124
 109                android:value="com.google.firebase.components.ComponentRegistrar" />
-109-->[com.google.android.gms:play-services-mlkit-text-recognition-common:19.1.0] /Users/rumman/.gradle/caches/8.11.1/transforms/12d8cd0feb1cdc969773ae59ec97d526/transformed/play-services-mlkit-text-recognition-common-19.1.0/AndroidManifest.xml:14:17-82
+109-->[com.google.mlkit:vision-common:17.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/3ea4c5ec75d1a28160a54cde37bd7735/transformed/vision-common-17.3.0/AndroidManifest.xml:14:17-82
 110            <meta-data
-110-->[com.google.mlkit:vision-common:17.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/3ea4c5ec75d1a28160a54cde37bd7735/transformed/vision-common-17.3.0/AndroidManifest.xml:12:13-14:85
-111                android:name="com.google.firebase.components:com.google.mlkit.vision.common.internal.VisionCommonRegistrar"
-111-->[com.google.mlkit:vision-common:17.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/3ea4c5ec75d1a28160a54cde37bd7735/transformed/vision-common-17.3.0/AndroidManifest.xml:13:17-124
+110-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:20:13-22:85
+111                android:name="com.google.firebase.components:com.google.mlkit.common.internal.CommonComponentRegistrar"
+111-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:21:17-120
 112                android:value="com.google.firebase.components.ComponentRegistrar" />
-112-->[com.google.mlkit:vision-common:17.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/3ea4c5ec75d1a28160a54cde37bd7735/transformed/vision-common-17.3.0/AndroidManifest.xml:14:17-82
-113            <meta-data
-113-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:20:13-22:85
-114                android:name="com.google.firebase.components:com.google.mlkit.common.internal.CommonComponentRegistrar"
-114-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:21:17-120
-115                android:value="com.google.firebase.components.ComponentRegistrar" />
-115-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:22:17-82
-116        </service>
-117
-118        <provider
-118-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:9:9-13:38
-119            android:name="com.google.mlkit.common.internal.MlKitInitProvider"
-119-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:10:13-78
-120            android:authorities="com.nirbhor.app.debug.mlkitinitprovider"
-120-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:11:13-69
-121            android:exported="false"
-121-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:12:13-37
-122            android:initOrder="99" />
-122-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:13:13-35
-123
-124        <activity
-124-->[com.google.android.gms:play-services-base:18.5.0] /Users/rumman/.gradle/caches/8.11.1/transforms/b623927e06f8f5005acd37d5c31456c4/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:9-173
-125            android:name="com.google.android.gms.common.api.GoogleApiActivity"
-125-->[com.google.android.gms:play-services-base:18.5.0] /Users/rumman/.gradle/caches/8.11.1/transforms/b623927e06f8f5005acd37d5c31456c4/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:19-85
-126            android:exported="false"
-126-->[com.google.android.gms:play-services-base:18.5.0] /Users/rumman/.gradle/caches/8.11.1/transforms/b623927e06f8f5005acd37d5c31456c4/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:146-170
-127            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-127-->[com.google.android.gms:play-services-base:18.5.0] /Users/rumman/.gradle/caches/8.11.1/transforms/b623927e06f8f5005acd37d5c31456c4/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:86-145
-128
-129        <meta-data
-129-->[com.google.android.gms:play-services-basement:18.4.0] /Users/rumman/.gradle/caches/8.11.1/transforms/77ec8ad39bb19b27ae1d6cfbdcd3384c/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:9-122
-130            android:name="com.google.android.gms.version"
-130-->[com.google.android.gms:play-services-basement:18.4.0] /Users/rumman/.gradle/caches/8.11.1/transforms/77ec8ad39bb19b27ae1d6cfbdcd3384c/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:20-65
-131            android:value="@integer/google_play_services_version" />
-131-->[com.google.android.gms:play-services-basement:18.4.0] /Users/rumman/.gradle/caches/8.11.1/transforms/77ec8ad39bb19b27ae1d6cfbdcd3384c/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:66-119
-132
-133        <provider
-133-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
-134            android:name="androidx.startup.InitializationProvider"
-134-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
-135            android:authorities="com.nirbhor.app.debug.androidx-startup"
-135-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
-136            android:exported="false" >
-136-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
+112-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:22:17-82
+113        </service>
+114
+115        <provider
+115-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:9:9-13:38
+116            android:name="com.google.mlkit.common.internal.MlKitInitProvider"
+116-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:10:13-78
+117            android:authorities="com.nirbhor.app.debug.mlkitinitprovider"
+117-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:11:13-69
+118            android:exported="false"
+118-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:12:13-37
+119            android:initOrder="99" />
+119-->[com.google.mlkit:common:18.11.0] /Users/rumman/.gradle/caches/8.11.1/transforms/5dffef3d9139931a190280338641fffa/transformed/common-18.11.0/AndroidManifest.xml:13:13-35
+120
+121        <activity
+121-->[com.google.android.gms:play-services-base:18.5.0] /Users/rumman/.gradle/caches/8.11.1/transforms/b623927e06f8f5005acd37d5c31456c4/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:9-173
+122            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+122-->[com.google.android.gms:play-services-base:18.5.0] /Users/rumman/.gradle/caches/8.11.1/transforms/b623927e06f8f5005acd37d5c31456c4/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:19-85
+123            android:exported="false"
+123-->[com.google.android.gms:play-services-base:18.5.0] /Users/rumman/.gradle/caches/8.11.1/transforms/b623927e06f8f5005acd37d5c31456c4/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:146-170
+124            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+124-->[com.google.android.gms:play-services-base:18.5.0] /Users/rumman/.gradle/caches/8.11.1/transforms/b623927e06f8f5005acd37d5c31456c4/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:86-145
+125
+126        <meta-data
+126-->[com.google.android.gms:play-services-basement:18.4.0] /Users/rumman/.gradle/caches/8.11.1/transforms/77ec8ad39bb19b27ae1d6cfbdcd3384c/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:9-122
+127            android:name="com.google.android.gms.version"
+127-->[com.google.android.gms:play-services-basement:18.4.0] /Users/rumman/.gradle/caches/8.11.1/transforms/77ec8ad39bb19b27ae1d6cfbdcd3384c/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:20-65
+128            android:value="@integer/google_play_services_version" />
+128-->[com.google.android.gms:play-services-basement:18.4.0] /Users/rumman/.gradle/caches/8.11.1/transforms/77ec8ad39bb19b27ae1d6cfbdcd3384c/transformed/play-services-basement-18.4.0/AndroidManifest.xml:6:66-119
+129
+130        <provider
+130-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+131            android:name="androidx.startup.InitializationProvider"
+131-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+132            android:authorities="com.nirbhor.app.debug.androidx-startup"
+132-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+133            android:exported="false" >
+133-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
+134            <meta-data
+134-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+135                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+135-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
+136                android:value="androidx.startup" />
+136-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
 137            <meta-data
-137-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
-138                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-138-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
+137-->[androidx.lifecycle:lifecycle-process:2.8.6] /Users/rumman/.gradle/caches/8.11.1/transforms/ba2f1769412b8c749979fba42a7e25b2/transformed/lifecycle-process-2.8.6/AndroidManifest.xml:29:13-31:52
+138                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+138-->[androidx.lifecycle:lifecycle-process:2.8.6] /Users/rumman/.gradle/caches/8.11.1/transforms/ba2f1769412b8c749979fba42a7e25b2/transformed/lifecycle-process-2.8.6/AndroidManifest.xml:30:17-78
 139                android:value="androidx.startup" />
-139-->[androidx.emoji2:emoji2:1.3.0] /Users/rumman/.gradle/caches/8.11.1/transforms/dd1de3c7a9e36baf5777eb4898f952ca/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+139-->[androidx.lifecycle:lifecycle-process:2.8.6] /Users/rumman/.gradle/caches/8.11.1/transforms/ba2f1769412b8c749979fba42a7e25b2/transformed/lifecycle-process-2.8.6/AndroidManifest.xml:31:17-49
 140            <meta-data
-140-->[androidx.lifecycle:lifecycle-process:2.8.6] /Users/rumman/.gradle/caches/8.11.1/transforms/ba2f1769412b8c749979fba42a7e25b2/transformed/lifecycle-process-2.8.6/AndroidManifest.xml:29:13-31:52
-141                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-141-->[androidx.lifecycle:lifecycle-process:2.8.6] /Users/rumman/.gradle/caches/8.11.1/transforms/ba2f1769412b8c749979fba42a7e25b2/transformed/lifecycle-process-2.8.6/AndroidManifest.xml:30:17-78
+140-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+141                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+141-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
 142                android:value="androidx.startup" />
-142-->[androidx.lifecycle:lifecycle-process:2.8.6] /Users/rumman/.gradle/caches/8.11.1/transforms/ba2f1769412b8c749979fba42a7e25b2/transformed/lifecycle-process-2.8.6/AndroidManifest.xml:31:17-49
-143            <meta-data
-143-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
-144                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-144-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
-145                android:value="androidx.startup" />
-145-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
-146        </provider>
-147
-148        <activity
-148-->[androidx.compose.ui:ui-tooling-android:1.7.3] /Users/rumman/.gradle/caches/8.11.1/transforms/f652ede9b6c5bb9d16a475005bd76e4e/transformed/ui-tooling-release/AndroidManifest.xml:23:9-25:39
-149            android:name="androidx.compose.ui.tooling.PreviewActivity"
-149-->[androidx.compose.ui:ui-tooling-android:1.7.3] /Users/rumman/.gradle/caches/8.11.1/transforms/f652ede9b6c5bb9d16a475005bd76e4e/transformed/ui-tooling-release/AndroidManifest.xml:24:13-71
-150            android:exported="true" />
-150-->[androidx.compose.ui:ui-tooling-android:1.7.3] /Users/rumman/.gradle/caches/8.11.1/transforms/f652ede9b6c5bb9d16a475005bd76e4e/transformed/ui-tooling-release/AndroidManifest.xml:25:13-36
-151
-152        <service
-152-->[androidx.room:room-runtime:2.6.1] /Users/rumman/.gradle/caches/8.11.1/transforms/4e660cd1aa7ee3e2e15c6271e4fe13f5/transformed/room-runtime-2.6.1/AndroidManifest.xml:24:9-28:63
-153            android:name="androidx.room.MultiInstanceInvalidationService"
-153-->[androidx.room:room-runtime:2.6.1] /Users/rumman/.gradle/caches/8.11.1/transforms/4e660cd1aa7ee3e2e15c6271e4fe13f5/transformed/room-runtime-2.6.1/AndroidManifest.xml:25:13-74
-154            android:directBootAware="true"
-154-->[androidx.room:room-runtime:2.6.1] /Users/rumman/.gradle/caches/8.11.1/transforms/4e660cd1aa7ee3e2e15c6271e4fe13f5/transformed/room-runtime-2.6.1/AndroidManifest.xml:26:13-43
-155            android:exported="false" />
-155-->[androidx.room:room-runtime:2.6.1] /Users/rumman/.gradle/caches/8.11.1/transforms/4e660cd1aa7ee3e2e15c6271e4fe13f5/transformed/room-runtime-2.6.1/AndroidManifest.xml:27:13-37
-156        <service
-156-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:29:9-35:19
-157            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
-157-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:30:13-103
-158            android:exported="false" >
-158-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:31:13-37
-159            <meta-data
-159-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:32:13-34:39
-160                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
-160-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:33:17-94
-161                android:value="cct" />
-161-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:34:17-36
-162        </service>
-163        <service
-163-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:26:9-30:19
-164            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
-164-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:27:13-117
-165            android:exported="false"
-165-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:28:13-37
-166            android:permission="android.permission.BIND_JOB_SERVICE" >
-166-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:29:13-69
-167        </service>
-168
+142-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+143        </provider>
+144
+145        <activity
+145-->[androidx.compose.ui:ui-tooling-android:1.7.3] /Users/rumman/.gradle/caches/8.11.1/transforms/f652ede9b6c5bb9d16a475005bd76e4e/transformed/ui-tooling-release/AndroidManifest.xml:23:9-25:39
+146            android:name="androidx.compose.ui.tooling.PreviewActivity"
+146-->[androidx.compose.ui:ui-tooling-android:1.7.3] /Users/rumman/.gradle/caches/8.11.1/transforms/f652ede9b6c5bb9d16a475005bd76e4e/transformed/ui-tooling-release/AndroidManifest.xml:24:13-71
+147            android:exported="true" />
+147-->[androidx.compose.ui:ui-tooling-android:1.7.3] /Users/rumman/.gradle/caches/8.11.1/transforms/f652ede9b6c5bb9d16a475005bd76e4e/transformed/ui-tooling-release/AndroidManifest.xml:25:13-36
+148
+149        <service
+149-->[androidx.room:room-runtime:2.6.1] /Users/rumman/.gradle/caches/8.11.1/transforms/4e660cd1aa7ee3e2e15c6271e4fe13f5/transformed/room-runtime-2.6.1/AndroidManifest.xml:24:9-28:63
+150            android:name="androidx.room.MultiInstanceInvalidationService"
+150-->[androidx.room:room-runtime:2.6.1] /Users/rumman/.gradle/caches/8.11.1/transforms/4e660cd1aa7ee3e2e15c6271e4fe13f5/transformed/room-runtime-2.6.1/AndroidManifest.xml:25:13-74
+151            android:directBootAware="true"
+151-->[androidx.room:room-runtime:2.6.1] /Users/rumman/.gradle/caches/8.11.1/transforms/4e660cd1aa7ee3e2e15c6271e4fe13f5/transformed/room-runtime-2.6.1/AndroidManifest.xml:26:13-43
+152            android:exported="false" />
+152-->[androidx.room:room-runtime:2.6.1] /Users/rumman/.gradle/caches/8.11.1/transforms/4e660cd1aa7ee3e2e15c6271e4fe13f5/transformed/room-runtime-2.6.1/AndroidManifest.xml:27:13-37
+153        <service
+153-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:29:9-35:19
+154            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+154-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:30:13-103
+155            android:exported="false" >
+155-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:31:13-37
+156            <meta-data
+156-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:32:13-34:39
+157                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+157-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:33:17-94
+158                android:value="cct" />
+158-->[com.google.android.datatransport:transport-backend-cct:2.3.3] /Users/rumman/.gradle/caches/8.11.1/transforms/87fa55471e9893b0399215d0e693a3ff/transformed/transport-backend-cct-2.3.3/AndroidManifest.xml:34:17-36
+159        </service>
+160        <service
+160-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:26:9-30:19
+161            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
+161-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:27:13-117
+162            android:exported="false"
+162-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:28:13-37
+163            android:permission="android.permission.BIND_JOB_SERVICE" >
+163-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:29:13-69
+164        </service>
+165
+166        <receiver
+166-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:32:9-34:40
+167            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
+167-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:33:13-132
+168            android:exported="false" />
+168-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:34:13-37
 169        <receiver
-169-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:32:9-34:40
-170            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
-170-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:33:13-132
-171            android:exported="false" />
-171-->[com.google.android.datatransport:transport-runtime:2.2.6] /Users/rumman/.gradle/caches/8.11.1/transforms/52931cb3fdb9a1c390c3050155e13fa1/transformed/transport-runtime-2.2.6/AndroidManifest.xml:34:13-37
-172        <receiver
-172-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
-173            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-173-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
-174            android:directBootAware="false"
-174-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
-175            android:enabled="true"
-175-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
-176            android:exported="true"
-176-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
-177            android:permission="android.permission.DUMP" >
-177-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+169-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+170            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+170-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+171            android:directBootAware="false"
+171-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+172            android:enabled="true"
+172-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+173            android:exported="true"
+173-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+174            android:permission="android.permission.DUMP" >
+174-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+175            <intent-filter>
+175-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+176                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+176-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+176-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+177            </intent-filter>
 178            <intent-filter>
-178-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
-179                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-179-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
-179-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+178-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+179                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+179-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+179-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
 180            </intent-filter>
 181            <intent-filter>
-181-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
-182                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-182-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
-182-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+181-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+182                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+182-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+182-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
 183            </intent-filter>
 184            <intent-filter>
-184-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
-185                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-185-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
-185-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+184-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+185                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+185-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+185-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
 186            </intent-filter>
-187            <intent-filter>
-187-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
-188                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-188-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
-188-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/rumman/.gradle/caches/8.11.1/transforms/59fa00366d74de475a57c0eb8d6909a2/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
-189            </intent-filter>
-190        </receiver>
-191    </application>
-192
-193</manifest>
+187        </receiver>
+188    </application>
+189
+190</manifest>
