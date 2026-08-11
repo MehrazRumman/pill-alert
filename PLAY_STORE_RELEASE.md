@@ -35,7 +35,7 @@ The Android project targets API 36 and builds an Android App Bundle with release
 Run before every upload:
 
 ```sh
-./gradlew clean testDebugUnitTest lintRelease bundleRelease
+./gradlew clean testDebugUnitTest connectedDebugAndroidTest lintRelease bundleRelease
 ```
 
 Inspect Play Console's pre-launch report, App Bundle Explorer warnings, policy status, and automated device results before promoting beyond internal testing.
