@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Nirbhor" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+        <item name="android:statusBarColor">@color/paper</item>
+        <item name="android:navigationBarColor">@color/card</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="28">shortEdges</item>
+    </style>
+
+    <!-- Full-screen alarm: calm-dark background, light status icons off -->
+    <style name="Theme.Nirbhor.Alarm" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/calm_d</item>
+        <item name="android:statusBarColor">@color/calm_d</item>
+        <item name="android:navigationBarColor">@color/calm_d</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

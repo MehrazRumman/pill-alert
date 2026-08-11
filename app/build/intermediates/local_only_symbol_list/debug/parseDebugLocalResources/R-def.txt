@@ -1,0 +1,20 @@
+R_DEF: Internal format may change without notice
+local
+color alarm_text
+color calm
+color calm_d
+color card
+color ic_launcher_background
+color ink
+color paper
+drawable ic_launcher_foreground
+font anekbangla_variable
+font archivo_variable
+mipmap ic_launcher
+mipmap ic_launcher_round
+string app_name
+string app_name_native
+style Theme.Nirbhor
+style Theme.Nirbhor.Alarm
+xml backup_rules
+xml data_extraction_rules

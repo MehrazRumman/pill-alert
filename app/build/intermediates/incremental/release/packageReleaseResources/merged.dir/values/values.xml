@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:ns1="http://schemas.android.com/tools">
+    <color name="alarm_text">#FFEEF3F0</color>
+    <color name="calm">#FF2F6B5B</color>
+    <color name="calm_d">#FF1F4F42</color>
+    <color name="card">#FFFFFFFF</color>
+    <color name="ic_launcher_background">#2F6B5B</color>
+    <color name="ink">#FF1B2A26</color>
+    <color name="paper">#FFF4F2EC</color>
+    <string name="app_name">Nirbhor</string>
+    <string name="app_name_native">নির্ভর</string>
+    <style name="Theme.Nirbhor" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+        <item name="android:statusBarColor">@color/paper</item>
+        <item name="android:navigationBarColor">@color/card</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" ns1:targetApi="27">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" ns1:targetApi="28">shortEdges</item>
+    </style>
+    <style name="Theme.Nirbhor.Alarm" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/calm_d</item>
+        <item name="android:statusBarColor">@color/calm_d</item>
+        <item name="android:navigationBarColor">@color/calm_d</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

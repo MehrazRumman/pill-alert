@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.nirbhor.app-mergeReleaseResources-67:/values-v16/values-v16.xml",
+            "map": [
+                {
+                    "source": "/Users/rumman/.gradle/caches/transforms-4/aa8b620754a1696ce6b4e192d1a236ae/transformed/appcompat-1.1.0/res/values-v16/values-v16.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "5",
+                        "endColumns": "12",
+                        "endOffsets": "223"
+                    }
+                }
+            ]
+        }
+    ]
+}
