@@ -18,8 +18,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
-        // Bangla is primary; English is the secondary supported locale.
-        resourceConfigurations += listOf("bn", "en")
     }
 
     buildTypes {
@@ -57,6 +55,11 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    androidResources {
+        // Bangla is primary; English is the secondary supported locale.
+        localeFilters += listOf("bn", "en")
     }
 
     packaging {

@@ -88,7 +88,7 @@ class AlarmActivity : ComponentActivity() {
                         if (settings.readAloud && doses.isNotEmpty()) {
                             tts = TextToSpeech(this@AlarmActivity) { status ->
                                 if (!disposed && status == TextToSpeech.SUCCESS) {
-                                    val language = if (isBangla) Locale("bn", "BD") else Locale.ENGLISH
+                                    val language = if (isBangla) Locale.forLanguageTag("bn-BD") else Locale.ENGLISH
                                     tts?.language = language
                                     val names = doses.joinToString(", ") { it.medicine.displayName }
                                     tts?.speak(names, TextToSpeech.QUEUE_FLUSH, null, "nirbhor-dose-$doseId")
