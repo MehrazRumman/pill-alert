@@ -36,18 +36,19 @@ public final class NirbhorDatabase_Impl extends NirbhorDatabase {
   @Override
   @NonNull
   protected SupportSQLiteOpenHelper createOpenHelper(@NonNull final DatabaseConfiguration config) {
-    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(1) {
+    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(2) {
       @Override
       public void createAllTables(@NonNull final SupportSQLiteDatabase db) {
         db.execSQL("CREATE TABLE IF NOT EXISTS `medicines` (`id` TEXT NOT NULL, `displayName` TEXT NOT NULL, `packName` TEXT NOT NULL, `strength` TEXT NOT NULL, `form` TEXT NOT NULL, `condition` TEXT NOT NULL, `mark` TEXT NOT NULL, `markColor` INTEGER NOT NULL, `dosePerIntake` REAL NOT NULL, `foodRelation` TEXT NOT NULL, `frequency` TEXT NOT NULL, `weekdaysMask` INTEGER NOT NULL, `timeTokens` TEXT NOT NULL, `resolvedTimes` TEXT NOT NULL, `stockCount` INTEGER NOT NULL, `stockUpdatedAt` INTEGER NOT NULL, `highRisk` INTEGER NOT NULL, `paused` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))");
         db.execSQL("CREATE TABLE IF NOT EXISTS `doses` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `medicineId` TEXT NOT NULL, `scheduledEpochMillis` INTEGER NOT NULL, `hour` INTEGER NOT NULL, `minute` INTEGER NOT NULL, `block` TEXT NOT NULL, `status` TEXT NOT NULL, `confirmedAt` INTEGER, `source` TEXT)");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_doses_medicineId` ON `doses` (`medicineId`)");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_doses_scheduledEpochMillis` ON `doses` (`scheduledEpochMillis`)");
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_doses_medicineId_scheduledEpochMillis` ON `doses` (`medicineId`, `scheduledEpochMillis`)");
         db.execSQL("CREATE TABLE IF NOT EXISTS `caregivers` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `relationship` TEXT NOT NULL, `email` TEXT NOT NULL, `emailVerified` INTEGER NOT NULL, `phone` TEXT NOT NULL, `channels` TEXT NOT NULL, `digestFrequency` TEXT NOT NULL, `escalateOnSecondMiss` INTEGER NOT NULL, `notifyOnMissedTwice` INTEGER NOT NULL, `notifyOnOutOfStock` INTEGER NOT NULL, `weeklySummary` INTEGER NOT NULL, PRIMARY KEY(`id`))");
         db.execSQL("CREATE TABLE IF NOT EXISTS `alert_log` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `caregiverId` TEXT NOT NULL, `kind` TEXT NOT NULL, `message` TEXT NOT NULL, `sentAtMillis` INTEGER NOT NULL, `outcome` TEXT NOT NULL)");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_alert_log_caregiverId` ON `alert_log` (`caregiverId`)");
         db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '82e6e7dd313dd1956ae495cafba9c0ea')");
+        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9af6b3634c01272127002fa23094ddfb')");
       }
 
       @Override
@@ -139,9 +140,10 @@ public final class NirbhorDatabase_Impl extends NirbhorDatabase {
         _columnsDoses.put("confirmedAt", new TableInfo.Column("confirmedAt", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsDoses.put("source", new TableInfo.Column("source", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         final HashSet<TableInfo.ForeignKey> _foreignKeysDoses = new HashSet<TableInfo.ForeignKey>(0);
-        final HashSet<TableInfo.Index> _indicesDoses = new HashSet<TableInfo.Index>(2);
+        final HashSet<TableInfo.Index> _indicesDoses = new HashSet<TableInfo.Index>(3);
         _indicesDoses.add(new TableInfo.Index("index_doses_medicineId", false, Arrays.asList("medicineId"), Arrays.asList("ASC")));
         _indicesDoses.add(new TableInfo.Index("index_doses_scheduledEpochMillis", false, Arrays.asList("scheduledEpochMillis"), Arrays.asList("ASC")));
+        _indicesDoses.add(new TableInfo.Index("index_doses_medicineId_scheduledEpochMillis", true, Arrays.asList("medicineId", "scheduledEpochMillis"), Arrays.asList("ASC", "ASC")));
         final TableInfo _infoDoses = new TableInfo("doses", _columnsDoses, _foreignKeysDoses, _indicesDoses);
         final TableInfo _existingDoses = TableInfo.read(db, "doses");
         if (!_infoDoses.equals(_existingDoses)) {
@@ -190,7 +192,7 @@ public final class NirbhorDatabase_Impl extends NirbhorDatabase {
         }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "82e6e7dd313dd1956ae495cafba9c0ea", "a85ee2f05338bc263c236485b00747ee");
+    }, "9af6b3634c01272127002fa23094ddfb", "7431cea3eecae10948cd7a55dd0ee6de");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(config.context).name(config.name).callback(_openCallback).build();
     final SupportSQLiteOpenHelper _helper = config.sqliteOpenHelperFactory.create(_sqliteConfig);
     return _helper;

@@ -18,3 +18,4 @@ style Theme.Nirbhor
 style Theme.Nirbhor.Alarm
 xml backup_rules
 xml data_extraction_rules
+xml file_paths

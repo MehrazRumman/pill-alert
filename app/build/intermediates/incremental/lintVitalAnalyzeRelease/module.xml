@@ -4,11 +4,11 @@
     name=":app"
     type="APP"
     maven="Nirbhor:app:unspecified"
-    agpVersion="8.5.2"
+    agpVersion="8.9.1"
     buildFolder="build"
-    bootClassPath="/Users/rumman/Library/Android/sdk/platforms/android-34/android.jar:/Users/rumman/Library/Android/sdk/build-tools/34.0.0/core-lambda-stubs.jar"
+    bootClassPath="/Users/rumman/Library/Android/sdk/platforms/android-36/android.jar:/Users/rumman/Library/Android/sdk/build-tools/35.0.0/core-lambda-stubs.jar"
     javaSourceLevel="17"
-    compileTarget="android-34">
+    compileTarget="android-36">
   <lintOptions
       abortOnError="true"
       absolutePaths="true"

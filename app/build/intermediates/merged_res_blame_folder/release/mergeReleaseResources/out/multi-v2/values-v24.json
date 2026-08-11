@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.nirbhor.app-mergeReleaseResources-67:/values-v24/values-v24.xml",
+            "outputFile": "com.nirbhor.app-mergeReleaseResources-68:/values-v24/values-v24.xml",
             "map": [
                 {
-                    "source": "/Users/rumman/.gradle/caches/transforms-4/aa8b620754a1696ce6b4e192d1a236ae/transformed/appcompat-1.1.0/res/values-v24/values-v24.xml",
+                    "source": "/Users/rumman/.gradle/caches/8.11.1/transforms/abe574d603bb3897f6468a66e78838da/transformed/appcompat-1.6.1/res/values-v24/values-v24.xml",
                     "from": {
                         "startLines": "2,3",
                         "startColumns": "4,4",

@@ -12,6 +12,7 @@ import androidx.room.RoomSQLiteQuery;
 import androidx.room.SharedSQLiteStatement;
 import androidx.room.util.CursorUtil;
 import androidx.room.util.DBUtil;
+import androidx.room.util.StringUtil;
 import androidx.sqlite.db.SupportSQLiteStatement;
 import java.lang.Class;
 import java.lang.Exception;
@@ -20,6 +21,7 @@ import java.lang.Long;
 import java.lang.Object;
 import java.lang.Override;
 import java.lang.String;
+import java.lang.StringBuilder;
 import java.lang.SuppressWarnings;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,9 +41,11 @@ public final class DoseDao_Impl implements DoseDao {
 
   private final EntityDeletionOrUpdateAdapter<DoseEntity> __updateAdapterOfDoseEntity;
 
-  private final SharedSQLiteStatement __preparedStmtOfSetStatus;
-
   private final SharedSQLiteStatement __preparedStmtOfDeleteUpcomingForMedicine;
+
+  private final SharedSQLiteStatement __preparedStmtOfDeleteForMedicine;
+
+  private final SharedSQLiteStatement __preparedStmtOfMarkOverdue;
 
   public DoseDao_Impl(@NonNull final RoomDatabase __db) {
     this.__db = __db;
@@ -49,7 +53,7 @@ public final class DoseDao_Impl implements DoseDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR REPLACE INTO `doses` (`id`,`medicineId`,`scheduledEpochMillis`,`hour`,`minute`,`block`,`status`,`confirmedAt`,`source`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?)";
+        return "INSERT OR IGNORE INTO `doses` (`id`,`medicineId`,`scheduledEpochMillis`,`hour`,`minute`,`block`,`status`,`confirmedAt`,`source`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -104,19 +108,27 @@ public final class DoseDao_Impl implements DoseDao {
         statement.bindLong(10, entity.getId());
       }
     };
-    this.__preparedStmtOfSetStatus = new SharedSQLiteStatement(__db) {
-      @Override
-      @NonNull
-      public String createQuery() {
-        final String _query = "UPDATE doses SET status = ?, confirmedAt = ?, source = ? WHERE id = ?";
-        return _query;
-      }
-    };
     this.__preparedStmtOfDeleteUpcomingForMedicine = new SharedSQLiteStatement(__db) {
       @Override
       @NonNull
       public String createQuery() {
         final String _query = "DELETE FROM doses WHERE medicineId = ? AND scheduledEpochMillis >= ? AND status = 'UPCOMING'";
+        return _query;
+      }
+    };
+    this.__preparedStmtOfDeleteForMedicine = new SharedSQLiteStatement(__db) {
+      @Override
+      @NonNull
+      public String createQuery() {
+        final String _query = "DELETE FROM doses WHERE medicineId = ?";
+        return _query;
+      }
+    };
+    this.__preparedStmtOfMarkOverdue = new SharedSQLiteStatement(__db) {
+      @Override
+      @NonNull
+      public String createQuery() {
+        final String _query = "UPDATE doses SET status = 'MISSED' WHERE status = 'UPCOMING' AND scheduledEpochMillis < ?";
         return _query;
       }
     };
@@ -160,46 +172,6 @@ public final class DoseDao_Impl implements DoseDao {
   }
 
   @Override
-  public Object setStatus(final long id, final String status, final Long confirmedAt,
-      final String source, final Continuation<? super Unit> $completion) {
-    return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
-      @Override
-      @NonNull
-      public Unit call() throws Exception {
-        final SupportSQLiteStatement _stmt = __preparedStmtOfSetStatus.acquire();
-        int _argIndex = 1;
-        _stmt.bindString(_argIndex, status);
-        _argIndex = 2;
-        if (confirmedAt == null) {
-          _stmt.bindNull(_argIndex);
-        } else {
-          _stmt.bindLong(_argIndex, confirmedAt);
-        }
-        _argIndex = 3;
-        if (source == null) {
-          _stmt.bindNull(_argIndex);
-        } else {
-          _stmt.bindString(_argIndex, source);
-        }
-        _argIndex = 4;
-        _stmt.bindLong(_argIndex, id);
-        try {
-          __db.beginTransaction();
-          try {
-            _stmt.executeUpdateDelete();
-            __db.setTransactionSuccessful();
-            return Unit.INSTANCE;
-          } finally {
-            __db.endTransaction();
-          }
-        } finally {
-          __preparedStmtOfSetStatus.release(_stmt);
-        }
-      }
-    }, $completion);
-  }
-
-  @Override
   public Object deleteUpcomingForMedicine(final String medicineId, final long fromMillis,
       final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
@@ -222,6 +194,58 @@ public final class DoseDao_Impl implements DoseDao {
           }
         } finally {
           __preparedStmtOfDeleteUpcomingForMedicine.release(_stmt);
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object deleteForMedicine(final String medicineId,
+      final Continuation<? super Unit> $completion) {
+    return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
+      @Override
+      @NonNull
+      public Unit call() throws Exception {
+        final SupportSQLiteStatement _stmt = __preparedStmtOfDeleteForMedicine.acquire();
+        int _argIndex = 1;
+        _stmt.bindString(_argIndex, medicineId);
+        try {
+          __db.beginTransaction();
+          try {
+            _stmt.executeUpdateDelete();
+            __db.setTransactionSuccessful();
+            return Unit.INSTANCE;
+          } finally {
+            __db.endTransaction();
+          }
+        } finally {
+          __preparedStmtOfDeleteForMedicine.release(_stmt);
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object markOverdue(final long cutoffMillis,
+      final Continuation<? super Integer> $completion) {
+    return CoroutinesRoom.execute(__db, true, new Callable<Integer>() {
+      @Override
+      @NonNull
+      public Integer call() throws Exception {
+        final SupportSQLiteStatement _stmt = __preparedStmtOfMarkOverdue.acquire();
+        int _argIndex = 1;
+        _stmt.bindLong(_argIndex, cutoffMillis);
+        try {
+          __db.beginTransaction();
+          try {
+            final Integer _result = _stmt.executeUpdateDelete();
+            __db.setTransactionSuccessful();
+            return _result;
+          } finally {
+            __db.endTransaction();
+          }
+        } finally {
+          __preparedStmtOfMarkOverdue.release(_stmt);
         }
       }
     }, $completion);
@@ -520,6 +544,62 @@ public final class DoseDao_Impl implements DoseDao {
         } finally {
           _cursor.close();
           _statement.release();
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object setStatusIf(final long id, final String status, final Long confirmedAt,
+      final String source, final List<String> allowedStatuses,
+      final Continuation<? super Integer> $completion) {
+    return CoroutinesRoom.execute(__db, true, new Callable<Integer>() {
+      @Override
+      @NonNull
+      public Integer call() throws Exception {
+        final StringBuilder _stringBuilder = StringUtil.newStringBuilder();
+        _stringBuilder.append("UPDATE doses SET status = ");
+        _stringBuilder.append("?");
+        _stringBuilder.append(", confirmedAt = ");
+        _stringBuilder.append("?");
+        _stringBuilder.append(", source = ");
+        _stringBuilder.append("?");
+        _stringBuilder.append(" WHERE id = ");
+        _stringBuilder.append("?");
+        _stringBuilder.append(" AND status IN (");
+        final int _inputSize = allowedStatuses.size();
+        StringUtil.appendPlaceholders(_stringBuilder, _inputSize);
+        _stringBuilder.append(")");
+        final String _sql = _stringBuilder.toString();
+        final SupportSQLiteStatement _stmt = __db.compileStatement(_sql);
+        int _argIndex = 1;
+        _stmt.bindString(_argIndex, status);
+        _argIndex = 2;
+        if (confirmedAt == null) {
+          _stmt.bindNull(_argIndex);
+        } else {
+          _stmt.bindLong(_argIndex, confirmedAt);
+        }
+        _argIndex = 3;
+        if (source == null) {
+          _stmt.bindNull(_argIndex);
+        } else {
+          _stmt.bindString(_argIndex, source);
+        }
+        _argIndex = 4;
+        _stmt.bindLong(_argIndex, id);
+        _argIndex = 5;
+        for (String _item : allowedStatuses) {
+          _stmt.bindString(_argIndex, _item);
+          _argIndex++;
+        }
+        __db.beginTransaction();
+        try {
+          final Integer _result = _stmt.executeUpdateDelete();
+          __db.setTransactionSuccessful();
+          return _result;
+        } finally {
+          __db.endTransaction();
         }
       }
     }, $completion);

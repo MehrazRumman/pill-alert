@@ -3,13 +3,13 @@
     useSupportLibraryVectorDrawables="true"
     package="com.nirbhor.app"
     minSdkVersion="26"
-    targetSdkVersion="34"
+    targetSdkVersion="36"
     shrinking="true"
     mergedManifest="build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml"
-    proguardFiles="build/intermediates/default_proguard_files/global/proguard-android-optimize.txt-8.5.2:proguard-rules.pro"
+    proguardFiles="build/intermediates/default_proguard_files/global/proguard-android-optimize.txt-8.9.1:proguard-rules.pro"
     resourceConfigurations="bn,en"
     partialResultsDir="build/intermediates/lint_vital_partial_results/release/lintVitalAnalyzeRelease/out"
-    desugaredMethodsFiles="/Users/rumman/.gradle/caches/transforms-4/d55f851489e751eb1c57bee128fc38e5/transformed/desugar_jdk_libs_configuration-2.1.2-desugar-lint.txt:/Users/rumman/.gradle/caches/transforms-4/0f3ae1bf8210b7d982a0e8e8d2f635f0/transformed/D8BackportedDesugaredMethods.txt">
+    desugaredMethodsFiles="/Users/rumman/.gradle/caches/8.11.1/transforms/d249a8c2a1c3d6f144353ae0f0898d21/transformed/desugar_jdk_libs_configuration-2.1.2-desugar-lint.txt:/Users/rumman/.gradle/caches/8.11.1/transforms/c05e5daaa10a9268228cf5640b7feae9/transformed/D8BackportedDesugaredMethods.txt">
   <buildFeatures
       coreLibraryDesugaring="true"
       namespacing="REQUIRED"/>
@@ -30,6 +30,6 @@
       applicationId="com.nirbhor.app"
       generatedSourceFolders="build/generated/ksp/release/java:build/generated/ksp/release/kotlin:build/generated/ap_generated_sources/release/out:build/generated/source/buildConfig/release"
       generatedResourceFolders="build/generated/res/resValues/release"
-      desugaredMethodsFiles="/Users/rumman/.gradle/caches/transforms-4/d55f851489e751eb1c57bee128fc38e5/transformed/desugar_jdk_libs_configuration-2.1.2-desugar-lint.txt:/Users/rumman/.gradle/caches/transforms-4/0f3ae1bf8210b7d982a0e8e8d2f635f0/transformed/D8BackportedDesugaredMethods.txt">
+      desugaredMethodsFiles="/Users/rumman/.gradle/caches/8.11.1/transforms/d249a8c2a1c3d6f144353ae0f0898d21/transformed/desugar_jdk_libs_configuration-2.1.2-desugar-lint.txt:/Users/rumman/.gradle/caches/8.11.1/transforms/c05e5daaa10a9268228cf5640b7feae9/transformed/D8BackportedDesugaredMethods.txt">
   </artifact>
 </variant>

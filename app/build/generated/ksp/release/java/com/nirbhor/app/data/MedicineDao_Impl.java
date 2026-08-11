@@ -42,6 +42,8 @@ public final class MedicineDao_Impl implements MedicineDao {
 
   private final SharedSQLiteStatement __preparedStmtOfDelete;
 
+  private final SharedSQLiteStatement __preparedStmtOfAdjustStock;
+
   public MedicineDao_Impl(@NonNull final RoomDatabase __db) {
     this.__db = __db;
     this.__insertionAdapterOfMedicineEntity = new EntityInsertionAdapter<MedicineEntity>(__db) {
@@ -124,6 +126,14 @@ public final class MedicineDao_Impl implements MedicineDao {
       @NonNull
       public String createQuery() {
         final String _query = "DELETE FROM medicines WHERE id = ?";
+        return _query;
+      }
+    };
+    this.__preparedStmtOfAdjustStock = new SharedSQLiteStatement(__db) {
+      @Override
+      @NonNull
+      public String createQuery() {
+        final String _query = "UPDATE medicines SET stockCount = MAX(0, stockCount + ?), stockUpdatedAt = ? WHERE id = ?";
         return _query;
       }
     };
@@ -217,6 +227,36 @@ public final class MedicineDao_Impl implements MedicineDao {
           }
         } finally {
           __preparedStmtOfDelete.release(_stmt);
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object adjustStock(final String id, final int delta, final long updatedAt,
+      final Continuation<? super Unit> $completion) {
+    return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
+      @Override
+      @NonNull
+      public Unit call() throws Exception {
+        final SupportSQLiteStatement _stmt = __preparedStmtOfAdjustStock.acquire();
+        int _argIndex = 1;
+        _stmt.bindLong(_argIndex, delta);
+        _argIndex = 2;
+        _stmt.bindLong(_argIndex, updatedAt);
+        _argIndex = 3;
+        _stmt.bindString(_argIndex, id);
+        try {
+          __db.beginTransaction();
+          try {
+            _stmt.executeUpdateDelete();
+            __db.setTransactionSuccessful();
+            return Unit.INSTANCE;
+          } finally {
+            __db.endTransaction();
+          }
+        } finally {
+          __preparedStmtOfAdjustStock.release(_stmt);
         }
       }
     }, $completion);
