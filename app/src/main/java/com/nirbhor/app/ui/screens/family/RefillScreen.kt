@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nirbhor.app.domain.Medicine
 import com.nirbhor.app.domain.StockStatus
+import com.nirbhor.app.domain.StockCalculator
 import com.nirbhor.app.navigation.LocalAppContainer
 import com.nirbhor.app.navigation.NavActions
 import com.nirbhor.app.ui.components.NbCard
@@ -188,7 +190,7 @@ private fun StockRow(med: Medicine, stock: StockStatus?, onRestock: () -> Unit) 
 @Composable
 private fun RestockSheet(medicine: Medicine, current: Int, onAdd: (Int) -> Unit) {
     val colors = NirbhorTheme.colors
-    var amount by remember { mutableStateOf(30f) }
+    var amount by remember { mutableFloatStateOf(30f) }
     SheetSurface {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             MedicineMark(shape = medicine.mark, color = Color(medicine.markColor), size = 34.dp)
@@ -209,17 +211,14 @@ private fun RestockSheet(medicine: Medicine, current: Int, onAdd: (Int) -> Unit)
         }
         Spacer(Modifier.height(14.dp))
         val result = current + amount.toInt()
-        val scheduledDaysPerWeek = when (medicine.frequency) {
-            com.nirbhor.app.domain.Frequency.DAILY -> 7f
-            com.nirbhor.app.domain.Frequency.ALTERNATE -> 3.5f
-            com.nirbhor.app.domain.Frequency.WEEKDAYS, com.nirbhor.app.domain.Frequency.WEEKLY ->
-                Integer.bitCount(medicine.weekdaysMask and 0x7F).coerceAtLeast(1).toFloat()
-        }
-        val perDay = (medicine.timeTokens.size.coerceAtLeast(1) * medicine.dosePerIntake * scheduledDaysPerWeek / 7f).coerceAtLeast(0.1f)
-        val days = (result / perDay).toInt()
+        val days = StockCalculator.estimatedDays(
+            result, medicine.dosePerIntake, medicine.timeTokens.size,
+            medicine.frequency, medicine.weekdaysMask, medicine.paused,
+        )
         TintPanel(background = colors.calmSoft) {
             Text(
-                tr("ঘরে হবে ${num(result)}টি — প্রায় ${num(days)} দিন চলবে।", "You'll have ${result} — about ${days} days."),
+                if (days == null) tr("ঘরে হবে ${num(result)}টি — ওষুধটি এখন বন্ধ আছে।", "You'll have $result — this medicine is paused.")
+                else tr("ঘরে হবে ${num(result)}টি — প্রায় ${num(days)} দিন চলবে।", "You'll have ${result} — about ${days} days."),
                 style = NirbhorTheme.type.body, color = colors.calmD,
             )
         }

@@ -276,23 +276,34 @@ private val strengthPattern = Regex(
     "\\b\\d+(?:[.,]\\d+)?\\s*(?:mg|mcg|µg|g|ml|iu|units?)\\b",
     RegexOption.IGNORE_CASE,
 )
+private val formPattern = Regex(
+    "(?i)\\b(tablets?|capsules?|syrup|suspension|injection|injectable)\\b",
+)
+private val metadataPattern = Regex(
+    "(?i)\\b(batch|lot|mfg|manufactured|exp|expiry|expires|price|mrp|marketed|distributed|license|reg(?:istration)?|pharma(?:ceuticals?)?)\\b",
+)
+
+private fun medicineNameFrom(line: String): String = line
+    .replace(strengthPattern, "")
+    .replace(formPattern, "")
+    .replace(Regex("(?i)\\b(usp|bp|ip)\\b"), "")
+    .trim(' ', '-', '·', ':', ',', '.')
+    .replace(Regex("\\s{2,}"), " ")
+    .take(80)
 
 internal fun parsePackText(text: String): ParsedPack? {
     val lines = text.lineSequence().map { it.trim() }.filter { it.length >= 2 }.toList()
     val strength = lines.firstNotNullOfOrNull { strengthPattern.find(it)?.value }.orEmpty()
-    val candidate = lines.withIndex().filter { it.value.any(Char::isLetter) }.maxByOrNull { (index, line) ->
+    val candidate = lines.withIndex().mapNotNull { (index, line) ->
+        if (metadataPattern.containsMatchIn(line)) return@mapNotNull null
+        val name = medicineNameFrom(line)
+        if (name.length < 2 || name.none(Char::isLetter)) return@mapNotNull null
         var score = if (index < 3) 3 else 0
-        if (strengthPattern.containsMatchIn(line)) score += 4
-        if (Regex("(?i)\\b(batch|mfg|exp|expiry|price|mrp|manufactured|marketed)\\b").containsMatchIn(line)) score -= 10
-        if (line.length in 3..40) score += 2
-        score
-    }?.value ?: return null
-    val name = candidate
-        .replace(strengthPattern, "")
-        .replace(Regex("(?i)\\b(tablets?|capsules?|syrup|suspension|injection|injectable)\\b"), "")
-        .trim(' ', '-', '·', ':')
-        .take(80)
-    if (name.length < 2) return null
+        if (strengthPattern.containsMatchIn(line)) score += 2
+        if (formPattern.containsMatchIn(line)) score += 1
+        if (name.length in 3..40) score += 2
+        name to score
+    }.maxByOrNull { it.second }?.first ?: return null
     val all = lines.joinToString(" ").lowercase()
     val form = when {
         "capsule" in all || "cap." in all -> "capsule"
@@ -300,7 +311,7 @@ internal fun parsePackText(text: String): ParsedPack? {
         "injection" in all || "injectable" in all -> "injection"
         else -> "tablet"
     }
-    return ParsedPack(name, strength, form)
+    return ParsedPack(candidate, strength, form)
 }
 
 internal fun stableMark(name: String): Pair<MarkShape, Long> {

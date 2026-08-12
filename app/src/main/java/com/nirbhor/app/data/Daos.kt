@@ -60,6 +60,9 @@ interface DoseDao {
     @Update
     suspend fun update(dose: DoseEntity)
 
+    @Query("UPDATE doses SET scheduledEpochMillis = :scheduledEpochMillis, hour = :hour, minute = :minute WHERE id = :id AND status = 'UPCOMING'")
+    suspend fun snoozeIfUpcoming(id: Long, scheduledEpochMillis: Long, hour: Int, minute: Int): Int
+
     @Query("UPDATE doses SET status = :status, confirmedAt = :confirmedAt, source = :source WHERE id = :id AND status IN (:allowedStatuses)")
     suspend fun setStatusIf(
         id: Long,

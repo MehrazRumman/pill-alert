@@ -20,6 +20,17 @@ object Numerals {
 
     fun number(value: Int, bangla: Boolean): String = digits(value.toString(), bangla)
 
+    /** Formats whole and half quantities without truncating values such as 1.5 to 1. */
+    fun quantity(value: Float, bangla: Boolean): String {
+        val roundedHalf = kotlin.math.round(value * 2f) / 2f
+        val text = if (roundedHalf % 1f == 0f) {
+            roundedHalf.toInt().toString()
+        } else {
+            "${roundedHalf.toInt()}.5"
+        }
+        return digits(text, bangla)
+    }
+
     fun percent(value: Int, bangla: Boolean): String =
         if (bangla) digits(value.toString(), true) + "%" else "$value%"
 

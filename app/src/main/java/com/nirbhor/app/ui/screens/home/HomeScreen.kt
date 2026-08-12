@@ -24,12 +24,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Brightness5
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -62,6 +64,8 @@ import com.nirbhor.app.navigation.LocalAppContainer
 import com.nirbhor.app.navigation.NavActions
 import com.nirbhor.app.notifications.AlarmScheduler
 import com.nirbhor.app.ui.components.PrimaryButton
+import com.nirbhor.app.ui.components.ConfirmActionDialog
+import com.nirbhor.app.ui.components.MissedDoseDialog
 import com.nirbhor.app.ui.components.ProgressRing
 import com.nirbhor.app.ui.components.SecondaryButton
 import com.nirbhor.app.ui.components.StatusPill
@@ -116,7 +120,8 @@ fun HomeScreen(actions: NavActions) {
 
     val total = blocks.sumOf { it.doses.size }
     val taken = blocks.sumOf { b -> b.doses.count { it.dose.status == DoseStatus.TAKEN || it.dose.status == DoseStatus.TAKEN_LATE } }
-    val allDone = total > 0 && taken == total
+    val skipped = blocks.sumOf { b -> b.doses.count { it.dose.status == DoseStatus.SKIPPED } }
+    val allDone = total > 0 && taken + skipped == total
 
     Box(Modifier.fillMaxSize().background(colors.paper)) {
         Column(Modifier.fillMaxSize()) {
@@ -131,9 +136,9 @@ fun HomeScreen(actions: NavActions) {
             ) {
                 when {
                     medicines.isEmpty() -> EmptyHome(actions)
-                    allDone -> DayComplete(taken)
+                    allDone -> DayComplete(taken, skipped)
                     else -> {
-                        ProgressSummary(taken, total)
+                        ProgressSummary(taken, skipped, total)
                         blocks.forEach { block ->
                             TimeBlockSection(
                                 block = block,
@@ -150,6 +155,7 @@ fun HomeScreen(actions: NavActions) {
                                     }
                                 },
                                 onSkip = { dwm -> scope.launch { repo.skipDose(dwm.dose.id) } },
+                                onOpenMedicine = { dwm -> actions.openMedicine(dwm.medicine.id) },
                             )
                         }
                     }
@@ -195,7 +201,7 @@ private fun HomeHeader(now: LocalTime, today: LocalDate, onBell: () -> Unit) {
                 Text(dateString(today, bangla), style = NirbhorTheme.type.meta, color = colors.ink3)
             }
             Box(
-                Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(colors.sage).clickable(onClick = onBell),
+                Modifier.size(Dimens.tapMin).clip(RoundedCornerShape(12.dp)).background(colors.sage).clickable(onClick = onBell),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Filled.Notifications, contentDescription = "Notifications", tint = colors.ink2, modifier = Modifier.size(21.dp))
@@ -209,18 +215,19 @@ private fun HomeHeader(now: LocalTime, today: LocalDate, onBell: () -> Unit) {
 }
 
 @Composable
-private fun ProgressSummary(taken: Int, total: Int) {
+private fun ProgressSummary(taken: Int, skipped: Int, total: Int) {
     val colors = NirbhorTheme.colors
+    val resolved = (taken + skipped).coerceAtMost(total)
     TintPanel(background = colors.calmSoft, radius = Dimens.radiusCard) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            ProgressRing(fraction = if (total == 0) 0f else taken.toFloat() / total, diameter = 46.dp)
+            ProgressRing(fraction = if (total == 0) 0f else resolved.toFloat() / total, diameter = 46.dp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     tr("${num(total)}টির মধ্যে ${num(taken)}টি ডোজ নেওয়া হয়েছে", "$taken of $total doses taken"),
                     style = NirbhorTheme.type.cardTitleSecondary, color = colors.calmD,
                 )
-                val remaining = (total - taken).coerceAtLeast(0)
+                val remaining = (total - resolved).coerceAtLeast(0)
                 Text(
                     tr("আর ${num(remaining)}টি বাকি", "$remaining to go"),
                     style = NirbhorTheme.type.meta, color = colors.ink2,
@@ -230,7 +237,7 @@ private fun ProgressSummary(taken: Int, total: Int) {
     }
 }
 
-private enum class BlockState { DONE, DUE, UPCOMING }
+private enum class BlockState { DONE, NEEDS_ATTENTION, DUE, UPCOMING }
 
 @Composable
 private fun TimeBlockSection(
@@ -240,11 +247,13 @@ private fun TimeBlockSection(
     onTaken: (DoseWithMedicine) -> Unit,
     onSnooze: (DoseWithMedicine) -> Unit,
     onSkip: (DoseWithMedicine) -> Unit,
+    onOpenMedicine: (DoseWithMedicine) -> Unit,
 ) {
     val colors = NirbhorTheme.colors
     val blockTime = LocalTime.of(block.hour, block.minute)
     val state = when {
-        block.allTaken -> BlockState.DONE
+        block.allResolved -> BlockState.DONE
+        block.doses.none { it.dose.status == DoseStatus.UPCOMING } -> BlockState.NEEDS_ATTENTION
         !now.isBefore(blockTime) -> BlockState.DUE
         else -> BlockState.UPCOMING
     }
@@ -265,6 +274,7 @@ private fun TimeBlockSection(
                     Text(tr("শেষ", "Done"), style = NirbhorTheme.type.statusPill, color = colors.calm)
                 }
                 BlockState.DUE -> StatusPill(tr("এখন সময়", "DUE NOW"), colors.warm, colors.paper)
+                BlockState.NEEDS_ATTENTION -> StatusPill(tr("খেয়াল করুন", "CHECK"), colors.warmSoft, colors.warmD)
                 BlockState.UPCOMING -> {}
             }
         }
@@ -279,6 +289,7 @@ private fun TimeBlockSection(
                 onTaken = { onTaken(dwm) },
                 onSnooze = { onSnooze(dwm) },
                 onSkip = { onSkip(dwm) },
+                onOpenMedicine = { onOpenMedicine(dwm) },
             )
         }
     }
@@ -293,15 +304,42 @@ private fun DoseCard(
     onTaken: () -> Unit,
     onSnooze: () -> Unit,
     onSkip: () -> Unit,
+    onOpenMedicine: () -> Unit,
 ) {
     val colors = NirbhorTheme.colors
     val med = dwm.medicine
     val taken = dwm.dose.status == DoseStatus.TAKEN || dwm.dose.status == DoseStatus.TAKEN_LATE
     val missed = dwm.dose.status == DoseStatus.MISSED
     val skipped = dwm.dose.status == DoseStatus.SKIPPED
+    var confirmSkip by remember { mutableStateOf(false) }
+    var showMissedActions by remember { mutableStateOf(false) }
+
+    if (showMissedActions) {
+        MissedDoseDialog(
+            medicineName = med.displayName,
+            onTaken = { showMissedActions = false; onTaken() },
+            onSkip = { showMissedActions = false; onSkip() },
+            onDetails = { showMissedActions = false; onOpenMedicine() },
+            onDismiss = { showMissedActions = false },
+        )
+    }
+
+    if (confirmSkip) {
+        ConfirmActionDialog(
+            title = tr("আজকের ডোজ বাদ দেবেন?", "Skip this dose?"),
+            message = tr(
+                "এটি আজ বাদ দেওয়া হিসেবে হিসাব হবে। পরে রেকর্ড থেকে পরিবর্তন করা যাবে।",
+                "This will be counted as skipped today. You can change it later from the record.",
+            ),
+            confirmLabel = tr("বাদ দিন", "Skip dose"),
+            cancelLabel = tr("ফিরে যান", "Cancel"),
+            onConfirm = { confirmSkip = false; onSkip() },
+            onDismiss = { confirmSkip = false },
+        )
+    }
 
     if (due) {
-        UrgentCard(padding = 16.dp) {
+        UrgentCard(modifier = Modifier.clickable(onClick = onOpenMedicine), padding = 16.dp) {
             DoseIdentity(dwm, titleStyle = NirbhorTheme.type.cardTitlePrimary)
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -310,8 +348,8 @@ private fun DoseCard(
                 } else {
                     PrimaryButton(text = tr("খেয়েছি", "Taken"), onClick = onTaken, height = Dimens.doseConfirm, modifier = Modifier.weight(1f))
                 }
-                SquareAction(Icons.Filled.Schedule, onSnooze)
-                SquareAction(Icons.Filled.Remove, onSkip)
+                SquareAction(Icons.Filled.Schedule, tr("পরে মনে করান", "Snooze"), onSnooze)
+                SquareAction(Icons.Filled.Remove, tr("আজকের ডোজ বাদ দিন", "Skip this dose")) { confirmSkip = true }
             }
         }
     } else {
@@ -321,6 +359,7 @@ private fun DoseCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(Dimens.radiusCard))
                 .background(colors.card)
+                .clickable { if (missed) showMissedActions = true else onOpenMedicine() }
                 .padding(Dimens.cardPadding)
                 .alpha(rowAlpha),
             verticalAlignment = Alignment.CenterVertically,
@@ -329,7 +368,7 @@ private fun DoseCard(
                 Box(Modifier.width(4.dp).height(40.dp).clip(RoundedCornerShape(2.dp)).background(colors.warm))
                 Spacer(Modifier.width(12.dp))
             }
-            StatusTile(taken = taken, med = med)
+            StatusTile(status = dwm.dose.status, med = med)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
@@ -349,6 +388,12 @@ private fun DoseCard(
                     Text(tr("ঘরে আর ${num(lowCount)}টি আছে", "$lowCount left at home"), style = NirbhorTheme.type.meta, color = colors.warmD)
                 }
             }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = tr("ওষুধের বিস্তারিত খুলুন", "Open medicine details"),
+                tint = colors.ink3,
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }
@@ -385,31 +430,42 @@ private fun DoseIdentity(dwm: DoseWithMedicine, titleStyle: TextStyle) {
 }
 
 @Composable
-private fun StatusTile(taken: Boolean, med: Medicine) {
+private fun StatusTile(status: DoseStatus, med: Medicine) {
     val colors = NirbhorTheme.colors
-    if (taken) {
-        Box(Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(colors.calm), contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Check, null, tint = colors.paper, modifier = Modifier.size(22.dp))
+    val taken = status == DoseStatus.TAKEN || status == DoseStatus.TAKEN_LATE
+    val background = when {
+        taken -> colors.calm
+        status == DoseStatus.MISSED -> colors.warmSoft
+        status == DoseStatus.SKIPPED -> colors.sage
+        else -> colors.calmSoft
+    }
+    Box(
+        Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(background),
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            taken -> Icon(Icons.Filled.Check, null, tint = colors.paper, modifier = Modifier.size(23.dp))
+            status == DoseStatus.MISSED -> Icon(Icons.Filled.WarningAmber, null, tint = colors.warmD, modifier = Modifier.size(23.dp))
+            status == DoseStatus.SKIPPED -> Icon(Icons.Filled.Remove, null, tint = colors.ink2, modifier = Modifier.size(23.dp))
+            else -> MedicineMark(shape = med.mark, color = Color(med.markColor), size = 27.dp)
         }
-    } else {
-        MedicineMark(shape = med.mark, color = Color(med.markColor), size = 34.dp)
     }
 }
 
 @Composable
-private fun SquareAction(icon: ImageVector, onClick: () -> Unit) {
+private fun SquareAction(icon: ImageVector, contentDescription: String, onClick: () -> Unit) {
     val colors = NirbhorTheme.colors
     Box(
         Modifier.size(Dimens.doseConfirm).clip(RoundedCornerShape(Dimens.radiusButton))
             .background(colors.card).border(1.5.dp, colors.line, RoundedCornerShape(Dimens.radiusButton)).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = colors.ink2, modifier = Modifier.size(22.dp))
+        Icon(icon, contentDescription = contentDescription, tint = colors.ink2, modifier = Modifier.size(22.dp))
     }
 }
 
 @Composable
-private fun DayComplete(taken: Int) {
+private fun DayComplete(taken: Int, skipped: Int) {
     val colors = NirbhorTheme.colors
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.groupGap)) {
         Column(
@@ -422,6 +478,9 @@ private fun DayComplete(taken: Int) {
             Spacer(Modifier.height(14.dp))
             Text(tr("আজকের সব ওষুধ শেষ", "All done for today"), style = NirbhorTheme.type.titleHero, color = colors.paper)
             Text(tr("${num(taken)}টি ডোজ নেওয়া হয়েছে", "$taken doses taken"), style = NirbhorTheme.type.body, color = colors.paper.copy(alpha = 0.9f))
+            if (skipped > 0) {
+                Text(tr("${num(skipped)}টি ডোজ বাদ দেওয়া হয়েছে", "$skipped doses skipped"), style = NirbhorTheme.type.meta, color = colors.paper.copy(alpha = 0.8f))
+            }
         }
         TintPanel(background = colors.sage) {
             Text(
@@ -439,9 +498,9 @@ private fun EmptyHome(actions: NavActions) {
         Spacer(Modifier.height(24.dp))
         Text(tr("এখানে আপনার আজকের ওষুধ দেখা যাবে", "Your medicines for today will appear here"), style = NirbhorTheme.type.titleHero, color = colors.ink)
         Text(tr("শুরু করতে একটি ওষুধ যোগ করুন।", "Add a medicine to get started."), style = NirbhorTheme.type.body, color = colors.ink2)
-        PrimaryButton(tr("পাতা স্ক্যান করে শুরু করুন", "Scan a pack to start"), actions::startScan, height = 68.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
-        SecondaryButton(tr("প্রেসক্রিপশনের ছবি", "Prescription photo"), actions::startPrescription, height = 58.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
-        SecondaryButton(tr("নাম দিয়ে খুঁজুন", "Search by name"), actions::startSearch, height = 58.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
+        PrimaryButton(tr("পাতা স্ক্যান করে শুরু করুন", "Scan a pack to start"), actions::startScan, height = 64.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
+        SecondaryButton(tr("প্রেসক্রিপশনের ছবি", "Prescription photo"), actions::startPrescription, height = 64.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
+        SecondaryButton(tr("নাম দিয়ে খুঁজুন", "Search by name"), actions::startSearch, height = 64.dp, leftAligned = true, modifier = Modifier.fillMaxWidth())
         TintPanel(background = colors.sage) {
             Text(tr("পরিবারের কেউ আপনার হয়ে ওষুধ যোগ করে দিতে পারেন।", "A family member can add your medicines for you."), style = NirbhorTheme.type.body, color = colors.ink2)
         }

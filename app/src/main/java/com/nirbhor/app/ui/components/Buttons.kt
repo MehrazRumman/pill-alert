@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nirbhor.app.ui.theme.Dimens
@@ -53,6 +54,8 @@ fun PrimaryButton(
                 style = NirbhorTheme.type.buttonLabel,
                 color = content ?: colors.paper,
                 textAlign = if (leftAligned) TextAlign.Start else TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -78,6 +81,8 @@ fun SecondaryButton(
                 style = NirbhorTheme.type.buttonLabel,
                 color = content ?: colors.calm,
                 textAlign = if (leftAligned) TextAlign.Start else TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -94,9 +99,10 @@ private fun NbButtonSurface(
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(Dimens.radiusButton)
+    val resolvedHeight = if (height < Dimens.tapMin) Dimens.tapMin else height
     Box(
         modifier = modifier
-            .heightIn(min = height)
+            .height(resolvedHeight)
             .clip(shape)
             .background(background)
             .then(if (border != null) Modifier.border(border, shape) else Modifier)

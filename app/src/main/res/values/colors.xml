@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ink">#FF1B2A26</color>
     <color name="paper">#FFF4F2EC</color>
     <color name="card">#FFFFFFFF</color>
-    <color name="calm">#FF2F6B5B</color>
     <color name="calm_d">#FF1F4F42</color>
-    <color name="alarm_text">#FFEEF3F0</color>
 </resources>

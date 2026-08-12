@@ -42,7 +42,7 @@ object Dimens {
 
     // Nav
     val bottomNavItem = 60.dp
-    val navIcon = 21.dp
+    val navIcon = 24.dp
 }
 
 /** Corner shapes reused across the app. */

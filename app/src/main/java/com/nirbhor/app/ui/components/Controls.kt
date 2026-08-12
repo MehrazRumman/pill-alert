@@ -146,7 +146,7 @@ private fun StepperButton(size: Dp, filled: Boolean, onClick: () -> Unit) {
     val colors = NirbhorTheme.colors
     Box(
         modifier = Modifier
-            .size(size)
+            .size(if (size < 48.dp) 48.dp else size)
             .clip(RoundedCornerShape(16.dp))
             .background(if (filled) colors.calm else colors.paper)
             .then(if (filled) Modifier else Modifier.border(1.5.dp, colors.line, RoundedCornerShape(16.dp)))
@@ -174,7 +174,7 @@ fun QuickChip(
     val colors = NirbhorTheme.colors
     Box(
         modifier = modifier
-            .height(height)
+            .height(if (height < 48.dp) 48.dp else height)
             .clip(RoundedCornerShape(10.dp))
             .background(if (selected) colors.calm else colors.sage)
             .clickable(onClick = onClick)

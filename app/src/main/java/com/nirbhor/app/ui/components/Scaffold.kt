@@ -110,7 +110,7 @@ fun BottomNavBar(
                     ) {
                         Icon(
                             tab.icon,
-                            contentDescription = null,
+                            contentDescription = if (isBangla) tab.labelBn else tab.labelEn,
                             tint = if (active) colors.calm else colors.ink3,
                             modifier = Modifier.size(Dimens.navIcon),
                         )

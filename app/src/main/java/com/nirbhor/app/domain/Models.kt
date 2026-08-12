@@ -80,6 +80,11 @@ data class TimelineBlock(
     val allTaken: Boolean get() = doses.isNotEmpty() && doses.all {
         it.dose.status == DoseStatus.TAKEN || it.dose.status == DoseStatus.TAKEN_LATE
     }
+    val allResolved: Boolean get() = doses.isNotEmpty() && doses.all {
+        it.dose.status == DoseStatus.TAKEN ||
+            it.dose.status == DoseStatus.TAKEN_LATE ||
+            it.dose.status == DoseStatus.SKIPPED
+    }
     val anyDueNow: Boolean get() = doses.any { it.dose.status == DoseStatus.UPCOMING }
 }
 

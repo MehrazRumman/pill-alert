@@ -33,13 +33,19 @@ class AlarmReceiver : BroadcastReceiver() {
                 val dose = NirbhorRepository.get(context).doseWithMedicine(doseId)
                 if (dose == null || dose.dose.status != DoseStatus.UPCOMING) return@launch
                 val settings = SettingsStore(context.applicationContext).settings.first()
-                postNotification(context, doseId, epoch, settings.fullScreenAlarm)
+                val fullScreenAllowed = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    context.getSystemService(NotificationManager::class.java)?.canUseFullScreenIntent() == true
+                } else {
+                    true
+                }
+                postNotification(context, doseId, epoch, settings.fullScreenAlarm && fullScreenAllowed)
+                // Refresh the rolling horizon before arming the repeat. Both use the same
+                // PendingIntent identity, so the repeat must be the final scheduled alarm.
+                AlarmScheduler.rescheduleAll(context.applicationContext)
                 if (repeatCount < settings.repeatMax) {
                     val repeatEpoch = System.currentTimeMillis() + settings.repeatEveryMinutes * 60_000L
                     AlarmScheduler.scheduleRepeat(context, doseId, repeatEpoch, repeatCount + 1)
                 }
-                // Keep the rolling alarm horizon armed even when the app is never opened.
-                AlarmScheduler.rescheduleAll(context.applicationContext)
             } finally {
                 pendingResult.finish()
             }

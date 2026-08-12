@@ -42,6 +42,33 @@ class ModelsTest {
         assertTrue(block.anyDueNow)
     }
 
+    @Test fun skippedDoseResolvesBlockWithoutPretendingItWasTaken() {
+        val medicine = testMedicine()
+        val block = TimelineBlock(
+            TimeBlock.MORNING,
+            8,
+            0,
+            listOf(
+                DoseWithMedicine(testDose(1, DoseStatus.TAKEN), medicine),
+                DoseWithMedicine(testDose(2, DoseStatus.SKIPPED), medicine),
+            ),
+        )
+        assertFalse(block.allTaken)
+        assertTrue(block.allResolved)
+        assertFalse(block.anyDueNow)
+    }
+
+    @Test fun missedDoseDoesNotResolveBlock() {
+        val medicine = testMedicine()
+        val block = TimelineBlock(
+            TimeBlock.MORNING,
+            8,
+            0,
+            listOf(DoseWithMedicine(testDose(1, DoseStatus.MISSED), medicine)),
+        )
+        assertFalse(block.allResolved)
+    }
+
     @Test fun dailyProgressHandlesEmptyNormalAndOvercompleteValues() {
         assertEquals(0, DailyProgress(0, 0).remaining)
         assertEquals(0f, DailyProgress(0, 0).fraction)

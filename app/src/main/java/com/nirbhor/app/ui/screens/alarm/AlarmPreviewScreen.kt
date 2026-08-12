@@ -24,6 +24,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +42,7 @@ import com.nirbhor.app.navigation.LocalAppContainer
 import com.nirbhor.app.navigation.NavActions
 import com.nirbhor.app.notifications.AlarmScheduler
 import com.nirbhor.app.ui.components.PrimaryButton
+import com.nirbhor.app.ui.components.ConfirmActionDialog
 import com.nirbhor.app.ui.components.SecondaryButton
 import com.nirbhor.app.ui.i18n.clock
 import com.nirbhor.app.ui.i18n.tr
@@ -59,6 +63,20 @@ fun AlarmPreviewScreen(actions: NavActions) {
 
     val block = blocks.firstOrNull { b -> b.doses.any { it.dose.status == DoseStatus.UPCOMING } } ?: blocks.firstOrNull()
     val due = block?.doses?.filter { it.dose.status == DoseStatus.UPCOMING }?.ifEmpty { block.doses } ?: emptyList()
+    var confirmSkip by remember { mutableStateOf(false) }
+    if (confirmSkip) {
+        ConfirmActionDialog(
+            title = tr("আজকের ডোজ বাদ দেবেন?", "Skip these doses?"),
+            message = tr("এটি আজ বাদ দেওয়া হিসেবে রেকর্ড হবে।", "This will be recorded as skipped today."),
+            confirmLabel = tr("বাদ দিন", "Skip"),
+            cancelLabel = tr("বাতিল", "Cancel"),
+            onConfirm = {
+                confirmSkip = false
+                scope.launch { due.forEach { repo.skipDose(it.dose.id) }; actions.back() }
+            },
+            onDismiss = { confirmSkip = false },
+        )
+    }
 
     Column(
         Modifier.fillMaxSize().background(colors.calmD).systemBarsPadding().padding(horizontal = 24.dp),
@@ -121,12 +139,7 @@ fun AlarmPreviewScreen(actions: NavActions) {
             )
             SecondaryButton(
                 tr("আজ বাদ", "Skip"),
-                {
-                    scope.launch {
-                        due.forEach { repo.skipDose(it.dose.id) }
-                        actions.back()
-                    }
-                },
+                { confirmSkip = true },
                 height = 62.dp, enabled = due.isNotEmpty(), borderColor = colors.alarmText.copy(alpha = 0.4f), content = colors.alarmText.copy(alpha = 0.7f), modifier = Modifier.width(118.dp),
             )
         }

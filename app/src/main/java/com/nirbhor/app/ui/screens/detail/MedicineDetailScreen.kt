@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -21,20 +24,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nirbhor.app.data.NirbhorRepository
 import com.nirbhor.app.domain.Medicine
@@ -43,6 +51,7 @@ import com.nirbhor.app.navigation.LocalAppContainer
 import com.nirbhor.app.navigation.NavActions
 import com.nirbhor.app.notifications.AlarmScheduler
 import com.nirbhor.app.ui.components.NbCard
+import com.nirbhor.app.ui.components.ConfirmActionDialog
 import com.nirbhor.app.ui.components.NbSwitch
 import com.nirbhor.app.ui.components.NirbhorTopBar
 import com.nirbhor.app.ui.components.PrimaryButton
@@ -69,13 +78,75 @@ fun MedicineDetailScreen(medicineId: String, actions: NavActions) {
     val context = LocalContext.current
     val medicine by repo.medicine(medicineId).collectAsStateWithLifecycle(initialValue = null)
 
-    var adherence by remember { mutableStateOf<NirbhorRepository.AdherenceWindow?>(null) }
+    var adherence by remember { mutableStateOf<NirbhorRepository.MedAdherence?>(null) }
     var editingStock by remember { mutableStateOf(false) }
-    var stockDraft by remember { mutableStateOf(0f) }
-    LaunchedEffect(medicineId) { adherence = repo.adherenceOver(30) }
+    var stockDraft by remember { mutableFloatStateOf(0f) }
+    var confirmRemoveMedicine by remember { mutableStateOf(false) }
+    var confirmRemoveTime by remember { mutableStateOf<Int?>(null) }
+    var editingMedicine by remember { mutableStateOf(false) }
+    LaunchedEffect(medicineId) {
+        adherence = repo.perMedicineAdherence(30).firstOrNull { it.medicine.id == medicineId }
+    }
 
     val med = medicine
-    Column(Modifier.fillMaxSize().background(colors.paper)) {
+    if (editingMedicine && med != null) {
+        EditMedicineDialog(
+            medicine = med,
+            onSave = { updated ->
+                editingMedicine = false
+                scope.launch {
+                    repo.upsertMedicine(updated)
+                    AlarmScheduler.rescheduleAll(context.applicationContext)
+                }
+            },
+            onDismiss = { editingMedicine = false },
+        )
+    }
+    if (confirmRemoveMedicine && med != null) {
+        ConfirmActionDialog(
+            title = tr("ওষুধটি সরিয়ে দেবেন?", "Remove this medicine?"),
+            message = tr(
+                "${med.displayName}-এর ভবিষ্যৎ অ্যালার্ম ও ডোজের ইতিহাস স্থায়ীভাবে মুছে যাবে।",
+                "Future alarms and dose history for ${med.displayName} will be permanently deleted.",
+            ),
+            confirmLabel = tr("সরিয়ে দিন", "Remove"),
+            cancelLabel = tr("রেখে দিন", "Keep it"),
+            onConfirm = {
+                confirmRemoveMedicine = false
+                scope.launch {
+                    repo.deleteMedicine(med.id)
+                    AlarmScheduler.rescheduleAll(context.applicationContext)
+                    actions.back()
+                }
+            },
+            onDismiss = { confirmRemoveMedicine = false },
+        )
+    }
+    val timeToRemove = confirmRemoveTime
+    if (timeToRemove != null && med != null && timeToRemove in med.timeTokens.indices) {
+        ConfirmActionDialog(
+            title = tr("এই সময়টি সরাবেন?", "Remove this time?"),
+            message = tr("এই সময়ের ভবিষ্যৎ অ্যালার্ম আর আসবে না।", "Future alarms for this time will be removed."),
+            confirmLabel = tr("সরিয়ে দিন", "Remove"),
+            cancelLabel = tr("বাতিল", "Cancel"),
+            onConfirm = {
+                confirmRemoveTime = null
+                val updatedTokens = med.timeTokens.toMutableList().also { it.removeAt(timeToRemove) }
+                val updatedTimes = med.resolvedTimes.toMutableList().also { if (timeToRemove in it.indices) it.removeAt(timeToRemove) }
+                scope.launch {
+                    repo.upsertMedicine(med.copy(timeTokens = updatedTokens, resolvedTimes = updatedTimes))
+                    AlarmScheduler.rescheduleAll(context.applicationContext)
+                }
+            },
+            onDismiss = { confirmRemoveTime = null },
+        )
+    }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .blur(if (editingMedicine) 8.dp else 0.dp)
+            .background(colors.paper),
+    ) {
         NirbhorTopBar(title = med?.displayName ?: tr("ওষুধ", "Medicine"), onBack = actions::back)
         if (med == null) return@Column
         Column(
@@ -89,9 +160,25 @@ fun MedicineDetailScreen(medicineId: String, actions: NavActions) {
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(med.displayName, style = NirbhorTheme.type.cardTitlePrimary, color = colors.ink)
-                        Text("${med.strength} · ${med.form} · ${med.condition}", style = NirbhorTheme.type.meta, color = colors.ink3)
+                        val identity = listOf(med.strength, med.form, med.condition).filter { it.isNotBlank() }.joinToString(" · ")
+                        if (identity.isNotBlank()) Text(identity, style = NirbhorTheme.type.meta, color = colors.ink3)
+                        Text(
+                            tr(
+                                "প্রতিবার ${Numerals.quantity(med.dosePerIntake, true)} ${med.form}",
+                                "${Numerals.quantity(med.dosePerIntake, false)} ${med.form} each time",
+                            ),
+                            style = NirbhorTheme.type.meta,
+                            color = colors.calmD,
+                        )
                     }
                 }
+                Spacer(Modifier.height(14.dp))
+                SecondaryButton(
+                    tr("ওষুধ সম্পাদনা করুন", "Edit medicine"),
+                    { editingMedicine = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 52.dp,
+                )
             }
 
             // Times
@@ -114,14 +201,7 @@ fun MedicineDetailScreen(medicineId: String, actions: NavActions) {
                                 }
                             },
                             onRemove = if (med.timeTokens.size > 1) {
-                                {
-                                    val updatedTokens = med.timeTokens.toMutableList().also { it.removeAt(i) }
-                                    val updatedTimes = med.resolvedTimes.toMutableList().also { if (i in it.indices) it.removeAt(i) }
-                                    scope.launch {
-                                        repo.upsertMedicine(med.copy(timeTokens = updatedTokens, resolvedTimes = updatedTimes))
-                                        AlarmScheduler.rescheduleAll(context.applicationContext)
-                                    }
-                                }
+                                { confirmRemoveTime = i }
                             } else null,
                         )
                     }
@@ -226,13 +306,7 @@ fun MedicineDetailScreen(medicineId: String, actions: NavActions) {
                 )
                 SecondaryButton(
                     tr("তালিকা থেকে সরান", "Remove"),
-                    {
-                        scope.launch {
-                            repo.deleteMedicine(med.id)
-                            AlarmScheduler.rescheduleAll(context.applicationContext)
-                            actions.back()
-                        }
-                    },
+                    { confirmRemoveMedicine = true },
                     height = 56.dp, borderColor = colors.warm, content = colors.warmD, modifier = Modifier.weight(1f),
                 )
             }
@@ -248,6 +322,104 @@ fun MedicineDetailScreen(medicineId: String, actions: NavActions) {
 }
 
 @Composable
+private fun EditMedicineDialog(
+    medicine: Medicine,
+    onSave: (Medicine) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = NirbhorTheme.colors
+    val bangla = LocalIsBangla.current
+    var name by remember(medicine.id) { mutableStateOf(medicine.displayName) }
+    var strength by remember(medicine.id) { mutableStateOf(medicine.strength) }
+    var form by remember(medicine.id) { mutableStateOf(medicine.form) }
+    var condition by remember(medicine.id) { mutableStateOf(medicine.condition) }
+    var dose by remember(medicine.id) { mutableFloatStateOf(medicine.dosePerIntake.coerceIn(0.5f, 10f)) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Column(
+            Modifier
+                .padding(horizontal = 20.dp)
+                .fillMaxWidth()
+                .widthIn(max = 420.dp)
+                .heightIn(max = 720.dp)
+                .imePadding()
+                .clip(RoundedCornerShape(22.dp))
+                .background(colors.card)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(tr("ওষুধ সম্পাদনা করুন", "Edit medicine"), style = NirbhorTheme.type.header, color = colors.ink)
+            Text(
+                tr("নাম, শক্তি, ধরন ও প্রতিবারের পরিমাণ বদলান।", "Update the name, strength, form, and amount taken each time."),
+                style = NirbhorTheme.type.body,
+                color = colors.ink2,
+            )
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it.take(80) },
+                label = { Text(tr("ওষুধের নাম", "Medicine name")) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = strength,
+                onValueChange = { strength = it.take(40) },
+                label = { Text(tr("শক্তি", "Strength")) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = form,
+                onValueChange = { form = it.take(40) },
+                label = { Text(tr("ধরন", "Form")) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = condition,
+                onValueChange = { condition = it.take(60) },
+                label = { Text(tr("কেন খান (ঐচ্ছিক)", "Used for (optional)")) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(tr("প্রতিবার কতটা", "How much each time"), style = NirbhorTheme.type.cardTitleSecondary, color = colors.ink)
+            QuantityStepper(
+                value = dose,
+                onChange = { dose = it.coerceIn(0.5f, 10f) },
+                valueLabel = Numerals.quantity(dose, bangla),
+                unitLabel = form.ifBlank { tr("ট্যাবলেট", "tablet") },
+                size = 56.dp,
+                step = 0.5f,
+                min = 0.5f,
+            )
+            Spacer(Modifier.height(4.dp))
+            PrimaryButton(
+                tr("পরিবর্তন সেভ করুন", "Save changes"),
+                {
+                    onSave(
+                        medicine.copy(
+                            displayName = name.trim(),
+                            strength = strength.trim(),
+                            form = form.trim(),
+                            condition = condition.trim(),
+                            dosePerIntake = dose,
+                        ),
+                    )
+                },
+                enabled = name.isNotBlank() && form.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+                height = 56.dp,
+            )
+            SecondaryButton(tr("বাতিল", "Cancel"), onDismiss, modifier = Modifier.fillMaxWidth(), height = 56.dp)
+        }
+    }
+}
+
+@Composable
 private fun TimeRow(
     med: Medicine,
     index: Int,
@@ -258,24 +430,33 @@ private fun TimeRow(
     val colors = NirbhorTheme.colors
     val bangla = LocalIsBangla.current
     val is24 = LocalIs24Hour.current
-    val (h, m) = remember(hhmm) { com.nirbhor.app.domain.DoseScheduler.parseHhmm(hhmm) ?: (8 to 0) }
+    var displayedTime by remember(hhmm) { mutableStateOf(hhmm) }
+    val (h, m) = com.nirbhor.app.domain.DoseScheduler.parseHhmm(displayedTime) ?: (8 to 0)
     val block = TimeBlock.fromToken(med.timeTokens.getOrNull(index) ?: "morning")
     val label = when (block) { TimeBlock.MORNING -> tr("সকাল", "Morning"); TimeBlock.NOON -> tr("দুপুর", "Afternoon"); TimeBlock.NIGHT -> tr("রাত", "Night") }
-    Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = NirbhorTheme.type.cardTitleSecondary, color = colors.ink, modifier = Modifier.weight(1f))
-        // Tap to shift −15 / +15 min via two small affordances.
-        Stepper("−") { onChange(shift(h, m, -15)) }
-        Spacer(Modifier.width(10.dp))
-        Text(Numerals.time(h, m, bangla, is24), style = NirbhorTheme.type.cardTitleSecondary, color = colors.calmD)
-        Spacer(Modifier.width(10.dp))
-        Stepper("+") { onChange(shift(h, m, +15)) }
-        if (onRemove != null) {
-            Spacer(Modifier.width(8.dp))
-            Box(
-                Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(colors.warmSoft).clickable(onClick = onRemove),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Filled.Remove, contentDescription = tr("সময় সরান", "Remove time"), tint = colors.warmD, modifier = Modifier.size(18.dp))
+    Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = NirbhorTheme.type.cardTitleSecondary, color = colors.ink, modifier = Modifier.weight(1f))
+            Text(Numerals.time(h, m, bangla, is24), style = NirbhorTheme.type.cardTitlePrimary, color = colors.calmD)
+            if (onRemove != null) {
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    Modifier.size(48.dp).clip(RoundedCornerShape(10.dp)).background(colors.warmSoft).clickable(onClick = onRemove),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.Remove, contentDescription = tr("সময় সরান", "Remove time"), tint = colors.warmD, modifier = Modifier.size(18.dp))
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Stepper("−15") {
+                displayedTime = shift(h, m, -15)
+                onChange(displayedTime)
+            }
+            Stepper("+15") {
+                displayedTime = shift(h, m, 15)
+                onChange(displayedTime)
             }
         }
     }
@@ -285,9 +466,9 @@ private fun TimeRow(
 private fun Stepper(label: String, onClick: () -> Unit) {
     val colors = NirbhorTheme.colors
     Box(
-        Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(colors.sage).clickable(onClick = onClick),
+        Modifier.size(48.dp).clip(RoundedCornerShape(10.dp)).background(colors.sage).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Text(label, style = NirbhorTheme.type.cardTitlePrimary, color = colors.ink2) }
+    ) { Text(label, style = NirbhorTheme.type.cardTitleSecondary, color = colors.ink2) }
 }
 
 private fun shift(h: Int, m: Int, delta: Int): String {

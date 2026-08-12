@@ -59,5 +59,11 @@ object DoseScheduler {
         return h to m
     }
 
+    /** Snooze from now when delivery was late, never from an already-past scheduled time. */
+    fun snoozedEpochMillis(scheduledEpochMillis: Long, nowEpochMillis: Long, minutes: Int): Long? {
+        if (minutes <= 0) return null
+        return maxOf(scheduledEpochMillis, nowEpochMillis) + minutes.toLong() * 60_000L
+    }
+
     fun weekdayBit(day: DayOfWeek): Int = 1 shl (day.value - 1)
 }

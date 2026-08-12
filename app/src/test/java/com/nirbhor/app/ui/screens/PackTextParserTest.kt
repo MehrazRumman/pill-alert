@@ -40,6 +40,22 @@ class PackTextParserTest {
         assertEquals("Napa", parsed?.name)
     }
 
+    @Test fun standaloneStrengthLineDoesNotHideMedicineName() {
+        val parsed = parsePackText("Napa\n500 mg\nTablet\nBeximco Pharmaceuticals")
+        assertEquals("Napa", parsed?.name)
+        assertEquals("500 mg", parsed?.strength)
+        assertEquals("tablet", parsed?.form)
+    }
+
+    @Test fun pharmaceuticalCompanyLineIsNotSelectedAsMedicine() {
+        val parsed = parsePackText("Square Pharmaceuticals Ltd\nSeclo\n20 mg capsule")
+        assertEquals("Seclo", parsed?.name)
+    }
+
+    @Test fun standaloneFormAndStrengthWithoutNameAreRejected() {
+        assertNull(parsePackText("Tablet\n500 mg\nEXP 2028"))
+    }
+
     @Test fun commaDecimalStrengthIsAccepted() {
         assertEquals("2,5 mg", parsePackText("Medicine 2,5 mg tablet")?.strength)
     }

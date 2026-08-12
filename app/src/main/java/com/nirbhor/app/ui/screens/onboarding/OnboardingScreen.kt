@@ -107,7 +107,7 @@ fun OnboardingScreen(actions: NavActions) {
                     scope.launch {
                         container.settings.setOnboardingComplete(true)
                         actions.finishOnboarding()
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             actions.openPermissionPriming()
                         }
                     }

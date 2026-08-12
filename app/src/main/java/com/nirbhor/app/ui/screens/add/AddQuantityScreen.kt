@@ -26,24 +26,28 @@ import com.nirbhor.app.ui.components.QuickChip
 import com.nirbhor.app.ui.components.SecondaryButton
 import com.nirbhor.app.ui.components.TintPanel
 import com.nirbhor.app.ui.i18n.num
+import com.nirbhor.app.ui.i18n.LocalIsBangla
+import com.nirbhor.app.ui.i18n.Numerals
 import com.nirbhor.app.ui.i18n.tr
 import com.nirbhor.app.ui.theme.Dimens
 import com.nirbhor.app.ui.theme.NirbhorTheme
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.nirbhor.app.domain.StockCalculator
 
 /** How many (3d): dose stepper + quick chips, then optional stock with a days-remaining readout. */
 @Composable
 fun AddQuantityScreen(actions: NavActions) {
     val colors = NirbhorTheme.colors
     val draft = LocalAddDraft.current
-    var dose by remember { mutableStateOf(if (draft.dosePerIntake > 0f) draft.dosePerIntake else 1f) }
-    var stock by remember { mutableStateOf(draft.stockCount.toFloat()) }
-    val perDay = draft.timeTokens.size.coerceAtLeast(1) * dose
-    val days = if (perDay <= 0f) 0 else (stock / perDay).toInt()
-    val doseLabel = if (dose == 0.5f) tr("আধা", "½") else num(dose.toInt())
+    var dose by remember { mutableFloatStateOf(if (draft.dosePerIntake > 0f) draft.dosePerIntake else 1f) }
+    var stock by remember { mutableFloatStateOf(draft.stockCount.toFloat()) }
+    val days = StockCalculator.estimatedDays(
+        stock.toInt(), dose, draft.timeTokens.size, draft.frequency, draft.weekdaysMask,
+    )
+    val doseLabel = Numerals.quantity(dose, LocalIsBangla.current)
 
     Column(Modifier.fillMaxSize().background(colors.paper)) {
         AddFlowHeader(step = 2, onBack = actions::back)
@@ -69,20 +73,25 @@ fun AddQuantityScreen(actions: NavActions) {
             Text(tr("ঘরে এখন কয়টা আছে?", "How many at home now?"), style = NirbhorTheme.type.header, color = colors.ink)
             NbCard(padding = 18.dp) {
                 QuantityStepper(
-                    value = stock, onChange = { stock = it; draft.stockCount = it.toInt() },
+                    value = stock, onChange = { stock = it.coerceAtMost(10_000f); draft.stockCount = stock.toInt() },
                     valueLabel = num(stock.toInt()), unitLabel = tr("টি", "left"),
                     size = 60.dp, step = 1f, min = 0f,
                 )
                 if (stock > 0) {
                     Spacer(Modifier.height(10.dp))
                     TintPanel(background = colors.calmSoft) {
-                        Text(tr("${num(days)} দিন চলবে", "About $days days"), style = NirbhorTheme.type.body, color = colors.calmD)
+                        Text(
+                            if (days == null) tr("সময়সূচি বেছে নিন", "Choose a valid schedule")
+                            else tr("প্রায় ${num(days)} দিন চলবে", "About $days days"),
+                            style = NirbhorTheme.type.body,
+                            color = colors.calmD,
+                        )
                     }
                 }
             }
 
             PrimaryButton(tr("পরের ধাপ", "Next"), { draft.dosePerIntake = dose; draft.stockCount = stock.toInt(); actions.addReview() }, height = 64.dp, modifier = Modifier.fillMaxWidth())
-            SecondaryButton(tr("বাদ দিন", "Skip"), { draft.stockCount = 0; actions.addReview() }, height = 52.dp, modifier = Modifier.fillMaxWidth())
+            SecondaryButton(tr("বাদ দিন", "Skip"), { draft.stockCount = 0; actions.addReview() }, height = 64.dp, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
         }
     }

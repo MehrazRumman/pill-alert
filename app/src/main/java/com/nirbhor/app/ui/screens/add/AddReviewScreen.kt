@@ -121,7 +121,7 @@ fun AddReviewScreen(actions: NavActions) {
                 }
                 ReviewRow(tr("কখন", "When"), "$whenWords · $foodWords")
                 ReviewRow(tr("কত ঘন ঘন", "Frequency"), frequencyWords)
-                ReviewRow(tr("কতটা", "How much"), "${doseText(draft.dosePerIntake, bangla)} ${draft.form}")
+                ReviewRow(tr("কতটা", "How much"), "${Numerals.quantity(draft.dosePerIntake, bangla)} ${draft.form}")
                 if (draft.stockCount > 0) ReviewRow(tr("ঘরে আছে", "In stock"), tr("${num(draft.stockCount)}টি", "${draft.stockCount}"))
             }
 
@@ -172,5 +172,3 @@ private fun ReviewRow(label: String, value: String) {
         Text(value, style = NirbhorTheme.type.cardTitleSecondary, color = colors.ink, modifier = Modifier.weight(1f))
     }
 }
-
-private fun doseText(v: Float, bangla: Boolean): String = if (v == 0.5f) "½" else Numerals.number(v.toInt(), bangla)

@@ -103,8 +103,8 @@ fun AddPrescriptionScreen(actions: NavActions) {
                 modifier = Modifier.fillMaxWidth(),
             )
             error?.let { Text(it, style = NirbhorTheme.type.meta, color = colors.warmD) }
-            SecondaryButton(tr("পাতা স্ক্যান করুন", "Scan the pack"), actions::addScan, height = 58.dp, modifier = Modifier.fillMaxWidth())
-            SecondaryButton(tr("নাম দিয়ে যোগ করুন", "Add by name"), actions::addSearch, height = 58.dp, modifier = Modifier.fillMaxWidth())
+            SecondaryButton(tr("পাতা স্ক্যান করুন", "Scan the pack"), actions::addScan, height = 60.dp, modifier = Modifier.fillMaxWidth())
+            SecondaryButton(tr("নাম দিয়ে যোগ করুন", "Add by name"), actions::addSearch, height = 60.dp, modifier = Modifier.fillMaxWidth())
             TintPanel(background = colors.sage) {
                 Text(tr("নির্ভর কখনও ডাক্তারের লেখা বদলায় না।", "Nirbhor never changes what the doctor wrote."),
                     style = NirbhorTheme.type.body, color = colors.ink2)

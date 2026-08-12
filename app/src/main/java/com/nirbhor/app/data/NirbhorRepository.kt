@@ -9,6 +9,7 @@ import com.nirbhor.app.domain.DoseStatus
 import com.nirbhor.app.domain.DoseWithMedicine
 import com.nirbhor.app.domain.Medicine
 import com.nirbhor.app.domain.StockStatus
+import com.nirbhor.app.domain.StockCalculator
 import com.nirbhor.app.domain.TimeBlock
 import com.nirbhor.app.domain.TimelineBlock
 import kotlinx.coroutines.flow.Flow
@@ -180,15 +181,18 @@ class NirbhorRepository private constructor(
     /** Snooze +10 min (repeats handled by the alarm scheduler); shifts the scheduled time. */
     suspend fun snoozeDose(doseId: Long, minutes: Int = 10) {
         val dose = doseDao.get(doseId) ?: return
-        if (dose.status != DoseStatus.UPCOMING.name || minutes <= 0) return
-        val shiftedEpoch = dose.scheduledEpochMillis + minutes.toLong() * 60_000L
+        if (dose.status != DoseStatus.UPCOMING.name) return
+        val shiftedEpoch = DoseScheduler.snoozedEpochMillis(
+            scheduledEpochMillis = dose.scheduledEpochMillis,
+            nowEpochMillis = System.currentTimeMillis(),
+            minutes = minutes,
+        ) ?: return
         val shiftedTime = java.time.Instant.ofEpochMilli(shiftedEpoch).atZone(zone).toLocalTime()
-        doseDao.update(
-            dose.copy(
-                scheduledEpochMillis = shiftedEpoch,
-                hour = shiftedTime.hour,
-                minute = shiftedTime.minute,
-            ),
+        doseDao.snoozeIfUpcoming(
+            id = doseId,
+            scheduledEpochMillis = shiftedEpoch,
+            hour = shiftedTime.hour,
+            minute = shiftedTime.minute,
         )
     }
 
@@ -196,23 +200,24 @@ class NirbhorRepository private constructor(
 
     fun stockStatuses(): Flow<List<StockStatus>> = medicines.map { meds ->
         meds.map { m ->
-            val dosesPerScheduledDay = m.timeTokens.size.coerceAtLeast(1) * m.dosePerIntake
-            val scheduledDaysPerWeek = when (m.frequency) {
-                com.nirbhor.app.domain.Frequency.DAILY -> 7f
-                com.nirbhor.app.domain.Frequency.ALTERNATE -> 3.5f
-                com.nirbhor.app.domain.Frequency.WEEKDAYS, com.nirbhor.app.domain.Frequency.WEEKLY ->
-                    Integer.bitCount(m.weekdaysMask and 0x7F).coerceAtLeast(1).toFloat()
-            }
-            val perDay = dosesPerScheduledDay * (scheduledDaysPerWeek / 7f)
-            val days = if (perDay <= 0f) Int.MAX_VALUE else (m.stockCount / perDay).toInt()
-            val runsOut = if (days == Int.MAX_VALUE) null else
+            val estimatedDays = StockCalculator.estimatedDays(m)
+            val days = estimatedDays ?: Int.MAX_VALUE
+            val runsOut = if (estimatedDays == null) null else
                 LocalDate.now(zone).plusDays(days.toLong()).atStartOfDay(zone).toInstant().toEpochMilli()
-            StockStatus(m.id, m.stockCount, days, isLow = days <= 5, runsOutEpochMillis = runsOut)
+            StockStatus(m.id, m.stockCount, days, isLow = estimatedDays != null && days <= 5, runsOutEpochMillis = runsOut)
         }
     }
 
-    data class AdherenceWindow(val taken: Int, val missed: Int, val total: Int, val streakDays: Int) {
-        val percent: Int get() = if (total == 0) 0 else ((taken.toFloat() / total) * 100).toInt()
+    data class AdherenceWindow(
+        val taken: Int,
+        val takenLate: Int,
+        val missed: Int,
+        val skipped: Int,
+        val total: Int,
+        val streakDays: Int,
+    ) {
+        /** Percentage taken on time; late doses still appear in [taken] but not this numerator. */
+        val percent: Int get() = if (total == 0) 0 else (((taken - takenLate).toFloat() / total) * 100).toInt()
     }
 
     suspend fun adherenceOver(days: Int): AdherenceWindow {
@@ -220,10 +225,12 @@ class NirbhorRepository private constructor(
         val start = today.minusDays((days - 1).toLong()).atStartOfDay(zone).toInstant().toEpochMilli()
         val end = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
         val doses = doseDao.getBetween(start, end).map { it.toDomain() }
+        val takenLate = doses.count { it.status == DoseStatus.TAKEN_LATE }
         val taken = doses.count { it.status == DoseStatus.TAKEN || it.status == DoseStatus.TAKEN_LATE }
         val missed = doses.count { it.status == DoseStatus.MISSED }
+        val skipped = doses.count { it.status == DoseStatus.SKIPPED }
         val total = doses.count { it.status != DoseStatus.UPCOMING }
-        return AdherenceWindow(taken, missed, total, streak(doses))
+        return AdherenceWindow(taken, takenLate, missed, skipped, total, streak(doses))
     }
 
     private fun streak(doses: List<DoseOccurrence>): Int {
@@ -267,8 +274,8 @@ class NirbhorRepository private constructor(
 
     enum class DayState { FULL, PARTIAL, MISSED, FUTURE, EMPTY }
     data class DayCell(val date: LocalDate, val state: DayState)
-    data class MedAdherence(val medicine: Medicine, val taken: Int, val total: Int) {
-        val percent: Int get() = if (total == 0) 0 else ((taken.toFloat() / total) * 100).toInt()
+    data class MedAdherence(val medicine: Medicine, val taken: Int, val takenLate: Int, val total: Int) {
+        val percent: Int get() = if (total == 0) 0 else (((taken - takenLate).toFloat() / total) * 100).toInt()
     }
 
     /** Per-day completion cells for the record grid (oldest→newest), covering [days] ending today. */
@@ -306,7 +313,8 @@ class NirbhorRepository private constructor(
         return meds.map { m ->
             val d = doses[m.id].orEmpty().filter { it.status != DoseStatus.UPCOMING }
             val taken = d.count { it.status == DoseStatus.TAKEN || it.status == DoseStatus.TAKEN_LATE }
-            NirbhorRepository.MedAdherence(m, taken, d.size)
+            val takenLate = d.count { it.status == DoseStatus.TAKEN_LATE }
+            NirbhorRepository.MedAdherence(m, taken, takenLate, d.size)
         }
     }
 

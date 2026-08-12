@@ -128,6 +128,19 @@ class DoseSchedulerTest {
         assertEquals("21:00", DoseScheduler.blockDefaultTime(TimeBlock.NIGHT))
     }
 
+    @Test fun snoozeUsesNowWhenOriginalAlarmIsAlreadyLate() {
+        val now = 10_000_000L
+        assertEquals(now + 10 * 60_000L, DoseScheduler.snoozedEpochMillis(now - 60_000L, now, 10))
+    }
+
+    @Test fun earlySnoozeUsesOriginalScheduleAndRejectsInvalidDuration() {
+        val now = 10_000_000L
+        val scheduled = now + 60_000L
+        assertEquals(scheduled + 5 * 60_000L, DoseScheduler.snoozedEpochMillis(scheduled, now, 5))
+        assertNull(DoseScheduler.snoozedEpochMillis(scheduled, now, 0))
+        assertNull(DoseScheduler.snoozedEpochMillis(scheduled, now, -1))
+    }
+
     private fun medicine(
         frequency: Frequency,
         weekdaysMask: Int = 0,

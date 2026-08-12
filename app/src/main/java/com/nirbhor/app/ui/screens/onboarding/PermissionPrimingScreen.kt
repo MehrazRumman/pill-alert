@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -57,11 +58,31 @@ fun PermissionPrimingScreen(actions: NavActions) {
     val scope = rememberCoroutineScope()
 
     fun finishPriming() {
-        scope.launch { container.settings.setPrimingShown(true) }
-        actions.back()
+        scope.launch {
+            container.settings.setPrimingShown(true)
+            actions.back()
+        }
+    }
+    val fullScreenLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        finishPriming()
+    }
+    fun askForFullScreenAlarmOrFinish() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val notificationManager = context.getSystemService(NotificationManager::class.java)
+            if (notificationManager?.canUseFullScreenIntent() == false) {
+                fullScreenLauncher.launch(
+                    Intent(
+                        Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                        Uri.parse("package:${context.packageName}"),
+                    ),
+                )
+                return
+            }
+        }
+        finishPriming()
     }
     val exactAlarmLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        finishPriming()
+        askForFullScreenAlarmOrFinish()
     }
     fun askForExactAlarmOrFinish() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -76,7 +97,7 @@ fun PermissionPrimingScreen(actions: NavActions) {
                 return
             }
         }
-        finishPriming()
+        askForFullScreenAlarmOrFinish()
     }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         askForExactAlarmOrFinish()

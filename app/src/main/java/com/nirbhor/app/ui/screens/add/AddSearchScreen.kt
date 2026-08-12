@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,7 +59,7 @@ private val markPalette = listOf(
 fun AddSearchScreen(actions: NavActions) {
     val colors = NirbhorTheme.colors
     val draft = LocalAddDraft.current
-    var query by remember { mutableStateOf("") }
+    var query by rememberSaveable { mutableStateOf("") }
     // Assign a stable mark from the name so the same medicine always looks the same.
     val (mark, color) = remember(query) {
         if (query.isBlank()) MarkShape.FilledCircle to 0xFF2F6B5BL
@@ -83,6 +84,8 @@ fun AddSearchScreen(actions: NavActions) {
                     if (query.isEmpty()) Text(tr("ওষুধের নাম লিখুন", "Type the medicine name"), style = NirbhorTheme.type.cardTitleSecondary, color = colors.ink3)
                     BasicTextField(
                         value = query, onValueChange = { query = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
                         textStyle = TextStyle(color = colors.ink, fontSize = NirbhorTheme.type.cardTitlePrimary.fontSize, fontFamily = NirbhorTheme.type.cardTitlePrimary.fontFamily),
                         cursorBrush = androidx.compose.ui.graphics.SolidColor(colors.calm),
                     )

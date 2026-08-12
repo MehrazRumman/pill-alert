@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,7 +69,7 @@ fun NirbhorAppRoot() {
     val isBangla = settings.isBangla(deviceIsBangla)
     val is24 = settings.is24Hour(isBangla)
 
-    val draft = remember { AddMedicineDraft() }
+    val draft = rememberSaveable(saver = AddMedicineDraft.Saver) { AddMedicineDraft() }
     val navController = rememberNavController()
     val actions = remember(navController, draft) { NavActions(navController, draft::reset) }
 

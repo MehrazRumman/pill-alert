@@ -24,7 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -63,7 +63,7 @@ fun SettingsScreen(actions: NavActions) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
-    var permissionRefresh by remember { mutableStateOf(0) }
+    var permissionRefresh by remember { mutableIntStateOf(0) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) permissionRefresh++
@@ -139,6 +139,21 @@ fun SettingsScreen(actions: NavActions) {
                         tr("লক স্ক্রিনেও দেখা যাবে", "Shows over the lock screen"),
                         settings.fullScreenAlarm,
                     ) { v -> edit { container.settings.setFullScreenAlarm(v) } }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        Divider()
+                        val notificationManager = context.getSystemService(android.app.NotificationManager::class.java)
+                        val fullScreenAllowed = notificationManager?.canUseFullScreenIntent() == true
+                        DrillRow(
+                            tr("লক-স্ক্রিন অ্যালার্ম অনুমতি", "Lock-screen alarm access"),
+                            if (fullScreenAllowed) tr("চালু", "On") else tr("বন্ধ — ঠিক করুন", "Off — fix"),
+                        ) {
+                            val intent = android.content.Intent(
+                                android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                                android.net.Uri.parse("package:${context.packageName}"),
+                            )
+                            runCatching { context.startActivity(intent) }
+                        }
+                    }
                     Divider()
                     DrillRow(tr("অ্যালার্মের শব্দ", "Alarm sound"), tr("সিস্টেম সেটিংস", "System settings")) {
                         val intent = android.content.Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {

@@ -21,6 +21,14 @@ class NumeralsTest {
         assertEquals("75%", Numerals.percent(75, bangla = false))
     }
 
+    @Test fun formatsWholeAndHalfQuantitiesWithoutTruncating() {
+        assertEquals("0.5", Numerals.quantity(0.5f, bangla = false))
+        assertEquals("1", Numerals.quantity(1f, bangla = false))
+        assertEquals("1.5", Numerals.quantity(1.5f, bangla = false))
+        assertEquals("২.৫", Numerals.quantity(2.5f, bangla = true))
+        assertEquals("১০", Numerals.quantity(10f, bangla = true))
+    }
+
     @Test fun banglaPeriodsCoverEveryBoundary() {
         val expected = mapOf(
             0 to "রাত", 3 to "রাত", 4 to "ভোর", 5 to "ভোর", 6 to "সকাল", 11 to "সকাল",

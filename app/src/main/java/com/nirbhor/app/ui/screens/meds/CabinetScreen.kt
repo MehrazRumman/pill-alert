@@ -85,8 +85,8 @@ fun CabinetScreen(actions: NavActions) {
             Modifier.fillMaxWidth().padding(horizontal = Dimens.screenPadding).padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            PrimaryButton(tr("ওষুধ যোগ করুন", "Add a medicine"), actions::startAddMedicine, height = 58.dp, modifier = Modifier.fillMaxWidth())
-            SecondaryButton(tr("পাতা বা বাক্স স্ক্যান করুন", "Scan a pack or box"), actions::startScan, height = 54.dp, modifier = Modifier.fillMaxWidth())
+            PrimaryButton(tr("ওষুধ যোগ করুন", "Add a medicine"), actions::startAddMedicine, height = 60.dp, modifier = Modifier.fillMaxWidth())
+            SecondaryButton(tr("পাতা বা বাক্স স্ক্যান করুন", "Scan a pack or box"), actions::startScan, height = 60.dp, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -96,7 +96,12 @@ private fun MedicineRow(med: Medicine, stock: StockStatus?, onClick: () -> Unit)
     val colors = NirbhorTheme.colors
     NbCard(onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            MedicineMark(shape = med.mark, color = Color(med.markColor), size = 32.dp)
+            Box(
+                Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(colors.calmSoft),
+                contentAlignment = Alignment.Center,
+            ) {
+                MedicineMark(shape = med.mark, color = Color(med.markColor), size = 27.dp)
+            }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(med.displayName, style = NirbhorTheme.type.cardTitleSecondary, color = colors.ink)
@@ -105,7 +110,12 @@ private fun MedicineRow(med: Medicine, stock: StockStatus?, onClick: () -> Unit)
             if (stock != null && stock.isLow) {
                 StatusPill(tr("${num(stock.count)}টি বাকি", "${stock.count} left"), colors.warmSoft, colors.warmD)
             } else {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colors.ink3)
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = tr("ওষুধের বিস্তারিত খুলুন", "Open medicine details"),
+                    tint = colors.ink3,
+                    modifier = Modifier.size(24.dp),
+                )
             }
         }
     }

@@ -63,6 +63,20 @@ class DaoIntegrationTest {
         assertEquals(500L, stored?.stockUpdatedAt)
     }
 
+    @Test fun snoozeCannotReviveDoseCompletedByAnotherAction() = runBlocking {
+        db.medicineDao().upsert(medicine())
+        db.doseDao().insertAll(listOf(dose()))
+        val stored = db.doseDao().getBetween(0, Long.MAX_VALUE).single()
+        db.doseDao().setStatusIf(
+            stored.id, DoseStatus.TAKEN.name, 200L, DoseSource.HOME.name,
+            listOf(DoseStatus.UPCOMING.name),
+        )
+        val changed = db.doseDao().snoozeIfUpcoming(stored.id, 999L, 9, 30)
+        assertEquals(0, changed)
+        assertEquals(DoseStatus.TAKEN.name, db.doseDao().get(stored.id)?.status)
+        assertEquals(100L, db.doseDao().get(stored.id)?.scheduledEpochMillis)
+    }
+
     @Test fun deletingMedicineDosesRemovesOnlyThatMedicinesRows() = runBlocking {
         db.medicineDao().upsert(medicine("m1"))
         db.medicineDao().upsert(medicine("m2"))

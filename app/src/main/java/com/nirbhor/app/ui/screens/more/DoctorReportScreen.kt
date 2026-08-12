@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,7 +65,7 @@ fun DoctorReportScreen(actions: NavActions) {
     val colors = NirbhorTheme.colors
     val repo = LocalAppContainer.current.repository
     val context = LocalContext.current
-    var rangeIdx by remember { mutableStateOf(0) }
+    var rangeIdx by remember { mutableIntStateOf(0) }
     val days = listOf(30, 90, 365)[rangeIdx]
     var latinNames by remember { mutableStateOf(true) }
     val reportFailed = tr("রিপোর্ট বানানো যায়নি", "Couldn't create the report")
@@ -148,8 +149,8 @@ fun DoctorReportScreen(actions: NavActions) {
                 PrimaryButton(
                     tr("পাঠান", "Send"),
                     {
-                        runCatching { createReportPdf(context, days, window, perMed, latinNames) }
-                            .onSuccess { file ->
+                        runCatching {
+                            val file = createReportPdf(context, days, window, perMed, latinNames)
                                 val uri = FileProvider.getUriForFile(context, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
                                 val share = Intent(Intent.ACTION_SEND).apply {
                                     type = "application/pdf"
@@ -190,6 +191,7 @@ private fun createReportPdf(
     val directory = File(context.cacheDir, "reports").apply { mkdirs() }
     val output = File(directory, "nirbhor-medication-report.pdf")
     val document = PdfDocument()
+    try {
     val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = android.graphics.Color.rgb(27, 42, 38)
         textSize = 22f
@@ -243,8 +245,10 @@ private fun createReportPdf(
     if (medicines.none { it.total > 0 }) canvas().drawText("No completed doses in this period.", 48f, y, bodyPaint)
     page?.let(document::finishPage)
     output.outputStream().use(document::writeTo)
-    document.close()
     return output
+    } finally {
+        document.close()
+    }
 }
 
 @Composable
