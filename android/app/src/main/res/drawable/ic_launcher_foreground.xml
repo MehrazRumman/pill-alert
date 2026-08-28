@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Nirbhor mark: the capsule from the onboarding screen, tilted -30 degrees and split by the
+     seam a two-part capsule actually has. The seam is a gap between two paths rather than a painted
+     line, so the background gradient shows through it.
+
+     Geometry is sized to sit inside the adaptive icon's 66dp safe circle: the capsule is 54dp long
+     on a 108dp canvas, so even a circular mask never clips an end. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:rotation="-30" android:pivotX="54" android:pivotY="54">
+        <!-- Rounded left end, flat against the seam. -->
+        <path
+            android:fillColor="#FFF4F2EC"
+            android:pathData="M55.64,38.6 H42.4 A15.4,15.4 0 0 0 42.4,69.4 H55.64 Z" />
+        <!-- Flat against the seam, rounded right end. -->
+        <path
+            android:fillColor="#FFF4F2EC"
+            android:pathData="M58.84,38.6 H65.6 A15.4,15.4 0 0 1 65.6,69.4 H58.84 Z" />
+    </group>
+</vector>

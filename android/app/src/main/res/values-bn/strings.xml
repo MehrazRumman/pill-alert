@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bangla is the app's primary language, so the launcher name follows the phone's locale. -->
+    <string name="app_name">নির্ভর</string>
+</resources>
