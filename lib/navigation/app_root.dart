@@ -9,8 +9,10 @@ import '../data/settings_store.dart';
 import '../main.dart' show pendingAlarmDoseId;
 import '../notifications/alarm_scheduler.dart';
 import '../notifications/missed_dose_notifier.dart';
+import '../i18n/app_locale.dart';
 import '../theme/theme.dart';
 import '../ui/components/scaffold.dart';
+import '../ui/screens/profile_screen.dart';
 import '../ui/screens/add_flow_common.dart';
 import '../ui/screens/add_quantity_screen.dart';
 import '../ui/screens/add_review_screen.dart';
@@ -126,19 +128,19 @@ class _NirbhorAppRootState extends State<NirbhorAppRoot> with WidgetsBindingObse
     await MissedDoseNotifier.sweep(_repo);
     await AlarmScheduler.rescheduleAll(
       _repo,
-      settings: AppSettingsView.from(_settings, _deviceIsBangla),
+      settings: AppSettingsView.from(_settings, _deviceLanguageCode),
     );
   }
 
-  bool get _deviceIsBangla => ui.PlatformDispatcher.instance.locale.languageCode == 'bn';
+  String get _deviceLanguageCode => ui.PlatformDispatcher.instance.locale.languageCode;
 
   @override
   Widget build(BuildContext context) {
     final settings = _settings.value;
-    final isBangla = settings.isBangla(_deviceIsBangla);
-    final is24 = settings.is24Hour(isBangla);
+    final locale = settings.resolve(_deviceLanguageCode);
+    final is24 = settings.is24Hour(locale.isBangla);
     final type = buildNirbhorType(
-      isBangla: isBangla,
+      script: locale.script,
       // The "সহজে পড়ার জন্য / bigger text" accessibility setting (up to ~1.2× per the responsive spec).
       scale: settings.biggerText ? 1.2 : 1,
     );
@@ -147,14 +149,19 @@ class _NirbhorAppRootState extends State<NirbhorAppRoot> with WidgetsBindingObse
       title: 'Nirbhor',
       debugShowCheckedModeBanner: false,
       navigatorKey: _navKey,
-      theme: buildMaterialTheme(type, isBangla),
+      theme: buildMaterialTheme(type, locale.isBangla),
+      // Declared so Flutter's own widgets (text selection handles, the date picker) follow the
+      // chosen language rather than the device's. `locale` is set explicitly because the app's
+      // language is a setting, not a device fact.
+      locale: Locale(locale.code),
+      supportedLocales: [for (final l in AppLocale.values) Locale(l.code)],
       initialRoute: _initialRoute,
       onGenerateRoute: _onGenerateRoute,
       builder: (context, child) => AppScope(
         container: widget.container,
         child: NirbhorTheme(
           type: type,
-          isBangla: isBangla,
+          locale: locale,
           is24Hour: is24,
           child: AddDraftScope(
             draft: _draft,
@@ -167,7 +174,7 @@ class _NirbhorAppRootState extends State<NirbhorAppRoot> with WidgetsBindingObse
                   statusBarColor: Colors.transparent,
                   statusBarIconBrightness: Brightness.dark,
                   statusBarBrightness: Brightness.light,
-                  systemNavigationBarColor: Color(0xFFFFFFFF),
+                  systemNavigationBarColor: Color(0xFFFFFFFF), // Mirrors NirbhorColors.card (const context).
                   systemNavigationBarIconBrightness: Brightness.dark,
                 ),
                 child: child ?? const SizedBox.shrink(),
@@ -208,6 +215,8 @@ class _NirbhorAppRootState extends State<NirbhorAppRoot> with WidgetsBindingObse
         page = const SettingsScreen();
       case Routes.help:
         page = const HelpScreen();
+      case Routes.profile:
+        page = const ProfileScreen();
       case Routes.medicineDetail:
         page = MedicineDetailScreen(medicineId: settings.arguments as String? ?? '');
       case Routes.addRoute:
@@ -225,7 +234,7 @@ class _NirbhorAppRootState extends State<NirbhorAppRoot> with WidgetsBindingObse
       default:
         return null;
     }
-    return MaterialPageRoute<void>(builder: (_) => page, settings: settings);
+    return NirbhorPageRoute<void>(page: page, settings: settings);
   }
 }
 
@@ -255,13 +264,21 @@ class TabShellState extends State<TabShell> {
     final index = _order.indexOf(_currentRoute).clamp(0, _order.length - 1);
     return Scaffold(
       backgroundColor: context.colors.paper,
-      body: IndexedStack(
-        index: index,
-        children: const [
-          HomeScreen(),
-          CabinetScreen(),
-          RecordScreen(),
-          MoreScreen(),
+      // A Stack of always-mounted layers rather than an IndexedStack: the scroll position and
+      // in-progress state each tab keeps are the same either way, but this one can cross-fade
+      // between them instead of cutting.
+      body: Stack(
+        children: [
+          for (var i = 0; i < 4; i++)
+            _TabLayer(
+              active: i == index,
+              child: const [
+                HomeScreen(),
+                CabinetScreen(),
+                RecordScreen(),
+                MoreScreen(),
+              ][i],
+            ),
         ],
       ),
       bottomNavigationBar: BottomNavBar(
@@ -271,4 +288,57 @@ class TabShellState extends State<TabShell> {
       ),
     );
   }
+}
+
+
+/// Shared transition for every pushed screen. The default Material route slides a full screen in
+/// from the edge; this fades and lifts a short distance instead, which reads as the same surface
+/// changing rather than a new sheet arriving — and it is far gentler at the top of a long list.
+///
+/// Honours the platform's reduce-motion setting by dropping to a plain fade.
+class NirbhorPageRoute<T> extends PageRouteBuilder<T> {
+  NirbhorPageRoute({required Widget page, required RouteSettings settings})
+      : super(
+          settings: settings,
+          transitionDuration: const Duration(milliseconds: 280),
+          reverseTransitionDuration: const Duration(milliseconds: 220),
+          pageBuilder: (_, _, _) => page,
+          transitionsBuilder: (context, animation, secondary, child) {
+            final eased = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            );
+            final fade = FadeTransition(opacity: eased, child: child);
+            if (MediaQuery.disableAnimationsOf(context)) return fade;
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.035),
+                end: Offset.zero,
+              ).animate(eased),
+              child: fade,
+            );
+          },
+        );
+}
+
+/// One tab of the shell. Stays mounted and keeps its state whether or not it is showing; when it
+/// is not, it is faded out, taken out of the hit-test tree, and has its tickers paused so an
+/// off-screen tab cannot animate.
+class _TabLayer extends StatelessWidget {
+  const _TabLayer({required this.active, required this.child});
+
+  final bool active;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AnimatedOpacity(
+        opacity: active ? 1 : 0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        child: IgnorePointer(
+          ignoring: !active,
+          child: TickerMode(enabled: active, child: child),
+        ),
+      );
 }

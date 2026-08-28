@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../data/app_scope.dart';
 import '../../domain/app_settings.dart';
+import '../../i18n/app_locale.dart';
 import '../../navigation/nav_actions.dart';
 import '../../notifications/nirbhor_notifications.dart';
 import '../../theme/theme.dart';
@@ -57,9 +58,13 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
   /// What "follow the phone" actually resolves to right now, rather than a hard-coded guess.
   String get _phoneLanguage {
     final device = ui.PlatformDispatcher.instance.locale;
+    // Named in the app's current language, not its own — this line reads "Now Hindi" inside an
+    // English sentence, so it has to agree with the sentence around it.
     return switch (device.languageCode) {
       'bn' => context.tr('বাংলা', 'Bangla'),
       'en' => context.tr('ইংরেজি', 'English'),
+      'hi' => context.tr('হিন্দি', 'Hindi'),
+      'es' => context.tr('স্প্যানিশ', 'Spanish'),
       _ => device.toLanguageTag(),
     };
   }
@@ -102,26 +107,25 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                                 ),
                                 subtitle: context.tr(
                                   'এখন $_phoneLanguage',
-                                  'Now $_phoneLanguage',
+                                  'Now $_phoneLanguage', hi: 'अभी $_phoneLanguage', es: 'Ahora $_phoneLanguage',
                                 ),
                                 selected: settings.localePref == LocalePref.system,
                                 onTap: () => store.setLocale(LocalePref.system),
                               ),
-                              const _Divider(),
-                              _RadioRow(
-                                title: 'বাংলা',
-                                // Archivo has no Bengali; this label must name Anek explicitly.
-                                bangla: true,
-                                selected: settings.localePref == LocalePref.bn,
-                                onTap: () => store.setLocale(LocalePref.bn),
-                              ),
-                              const _Divider(),
-                              _RadioRow(
-                                title: 'English',
-                                latin: true,
-                                selected: settings.localePref == LocalePref.en,
-                                onTap: () => store.setLocale(LocalePref.en),
-                              ),
+                              // Each language names itself, in its own script. A list that says
+                              // "Bengali" and "Hindi" in English is unreadable to exactly the
+                              // person who needs to change this setting — and neither Archivo nor
+                              // Anek Bangla can draw the other's glyphs, so the face is chosen per
+                              // row rather than taken from the active locale.
+                              for (final option in _languageOptions) ...[
+                                const _Divider(),
+                                _RadioRow(
+                                  title: option.$1.endonym,
+                                  scriptOf: option.$1,
+                                  selected: settings.localePref == option.$2,
+                                  onTap: () => store.setLocale(option.$2),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -202,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                                             )
                                           : context.tr(
                                               'প্রতি ${context.num(settings.repeatEveryMinutes)} মিনিটে, ${context.num(settings.repeatMax)} বার পর্যন্ত',
-                                              'Every ${settings.repeatEveryMinutes} min, up to ${settings.repeatMax} times',
+                                              'Every ${settings.repeatEveryMinutes} min, up to ${settings.repeatMax} times', hi: 'हर ${settings.repeatEveryMinutes} मिनट, ${settings.repeatMax} बार तक', es: 'Cada ${settings.repeatEveryMinutes} min, hasta ${settings.repeatMax} veces',
                                             ),
                                       style:
                                           context.type.meta.copyWith(color: colors.ink3),
@@ -313,32 +317,37 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
   }
 }
 
+/// Every language the app ships, paired with the preference that selects it. Ordered by the size
+/// of the audience the app is built for, not alphabetically.
+const List<(AppLocale, LocalePref)> _languageOptions = [
+  (AppLocale.bn, LocalePref.bn),
+  (AppLocale.en, LocalePref.en),
+  (AppLocale.hi, LocalePref.hi),
+  (AppLocale.es, LocalePref.es),
+];
+
 class _RadioRow extends StatelessWidget {
   const _RadioRow({
     required this.title,
     required this.selected,
     required this.onTap,
     this.subtitle,
-    this.bangla = false,
-    this.latin = false,
+    this.scriptOf,
   });
 
   final String title;
   final String? subtitle;
   final bool selected;
   final VoidCallback onTap;
-  final bool bangla;
-  final bool latin;
+  /// When set, the row's title is drawn in this language's own script.
+  final AppLocale? scriptOf;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final base = context.type.cardTitleSecondary;
-    final style = bangla
-        ? context.type.asBangla(base)
-        : latin
-            ? context.type.asLatin(base)
-            : base;
+    final named = scriptOf;
+    final style = named != null ? context.type.asScriptOf(named, base) : base;
     return Semantics(
       selected: selected,
       inMutuallyExclusiveGroup: true,

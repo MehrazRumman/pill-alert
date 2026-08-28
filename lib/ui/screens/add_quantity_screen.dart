@@ -137,7 +137,7 @@ class _AddQuantityScreenState extends State<AddQuantityScreen> {
                                       )
                                     : context.tr(
                                         'প্রায় ${context.num(days)} দিন চলবে',
-                                        'About $days days',
+                                        'About $days days', hi: 'लगभग $days दिन', es: 'Unos $days días',
                                       ),
                                 style: context.type.body.copyWith(color: colors.calmD),
                               ),

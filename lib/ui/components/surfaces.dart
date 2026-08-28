@@ -4,15 +4,17 @@ import '../../theme/theme.dart';
 
 /// Card shadow (README): calm cards get a soft ink shadow; urgent cards get a stronger amber one.
 List<BoxShadow> nbCardShadow({bool elevated = false}) => [
+      // Wider and fainter than the design's original: a card should read as lifted without the
+      // shadow itself being visible. The contact shadow underneath keeps the edge from floating.
       BoxShadow(
-        color: elevated ? const Color(0x2EC07138) : const Color(0x141B2A26),
-        blurRadius: elevated ? 20 : 14,
-        offset: Offset(0, elevated ? 6 : 4),
+        color: elevated ? nbColors.warm.withValues(alpha: 0.16) : nbColors.ink.withValues(alpha: 0.05),
+        blurRadius: elevated ? 28 : 22,
+        offset: Offset(0, elevated ? 8 : 6),
       ),
-      const BoxShadow(
-        color: Color(0x141B2A26),
-        blurRadius: 6,
-        offset: Offset(0, 1),
+      BoxShadow(
+        color: nbColors.ink.withValues(alpha: 0.03),
+        blurRadius: 3,
+        offset: const Offset(0, 1),
       ),
     ];
 

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../i18n/app_locale.dart';
+
 /// The two bundled families. Both ship as variable TTFs, so every weight is instantiated from the
 /// single file's `wght` axis via [FontVariation] rather than from separate static files.
 const String kAnekBangla = 'AnekBangla';
+const String kAnekDevanagari = 'AnekDevanagari';
 const String kArchivo = 'Archivo';
 
 /// Smallest line height, as a multiple of font size, that a family can be given before the layout
@@ -18,6 +21,12 @@ const String kArchivo = 'Archivo';
 /// their matras and descenders sliced off in the app's *primary* locale. Roles that already ask for
 /// more than the floor keep their designed value; only the too-tight ones are lifted.
 const double kBanglaMinLine = 1.52;
+
+/// Devanagari, measured the same way from Anek Devanagari's own glyph boxes: ink runs +0.972em
+/// (U+0951 udatta) to −0.474em (U+0963 vocalic vowel sign) = **1.446em**. Like Bengali it stacks
+/// marks above the headline and hangs below the baseline, so it needs a floor of its own — smaller
+/// than Bangla's because its descending signs do not reach as far.
+const double kDevanagariMinLine = 1.48;
 const double kLatinMinLine = 1.0;
 
 /// The type scale from README > Design Tokens > Typography. Bangla (Anek Bangla) renders visibly
@@ -39,7 +48,7 @@ class NirbhorType {
     required this.sectionLabel,
     required this.buttonLabel,
     required this.statusPill,
-    required this.isBangla,
+    required this.script,
   });
 
   final TextStyle titleHero;
@@ -55,23 +64,42 @@ class NirbhorType {
   final TextStyle buttonLabel;
   final TextStyle statusPill;
 
-  /// true when the active locale is Bangla — components use this to skip uppercase / spacing.
-  final bool isBangla;
+  /// The script the scale was built for. Components read [isBangla] / [isIndic] off this to skip
+  /// uppercase and letter-spacing, neither of which may be applied to a script that forms
+  /// conjuncts — splitting one reorders its vowel signs.
+  final NbScript script;
+
+  bool get isBangla => script == NbScript.bengali;
+  bool get isIndic => script != NbScript.latin;
 
   /// Archivo is always used for Latin runs (codes, emails, pack names) even in Bangla.
   String get latin => kArchivo;
 
   /// Anek Bangla, whatever the active locale. Archivo has **no Bengali glyphs at all**, so any
-  /// Bangla literal that shows in the English locale (the brand name, the "বাংলা" language option)
+  /// Bangla literal that shows in another locale (the brand name, the "বাংলা" language option)
   /// must use this or it falls through to a system font — or to tofu on a device without one.
   String get bangla => kAnekBangla;
+
+  /// Anek Devanagari, whatever the active locale — same reasoning as [bangla]. The "हिन्दी"
+  /// option in the language list is rendered with this even when the app is in Spanish.
+  String get devanagari => kAnekDevanagari;
 
   /// Restyles [style] onto the Latin family, keeping its size/weight. Use for codes, emails and
   /// pack names, which stay Latin in both locales.
   TextStyle asLatin(TextStyle style) => style.copyWith(fontFamily: kArchivo);
 
-  /// Restyles [style] onto Anek Bangla — required for any Bangla literal shown in English.
+  /// Restyles [style] onto Anek Bangla — required for any Bangla literal shown in another locale.
   TextStyle asBangla(TextStyle style) => style.copyWith(fontFamily: kAnekBangla);
+
+  /// Restyles [style] onto Anek Devanagari — required for any Hindi literal shown elsewhere.
+  TextStyle asDevanagari(TextStyle style) => style.copyWith(fontFamily: kAnekDevanagari);
+
+  /// The face a language's own name must be set in, for a list that names each option in itself.
+  TextStyle asScriptOf(AppLocale locale, TextStyle style) => switch (locale.script) {
+        NbScript.bengali => asBangla(style),
+        NbScript.devanagari => asDevanagari(style),
+        NbScript.latin => asLatin(style),
+      };
 }
 
 TextStyle _style({
@@ -83,7 +111,11 @@ TextStyle _style({
   double letterEm = 0,
 }) {
   final size = px * scale;
-  final floor = family == kAnekBangla ? kBanglaMinLine : kLatinMinLine;
+  final floor = switch (family) {
+    kAnekBangla => kBanglaMinLine,
+    kAnekDevanagari => kDevanagariMinLine,
+    _ => kLatinMinLine,
+  };
   return TextStyle(
     fontFamily: family,
     fontWeight: FontWeight.values[(weight ~/ 100) - 1],
@@ -100,10 +132,17 @@ TextStyle _style({
 }
 
 /// Builds the scale for the active locale. [scale] applies the OS / in-app "bigger text" setting.
-NirbhorType buildNirbhorType({required bool isBangla, double scale = 1}) {
-  final family = isBangla ? kAnekBangla : kArchivo;
-  // Letter spacing / uppercase only exist in the English locale.
-  double ls(double em) => isBangla ? 0 : em;
+NirbhorType buildNirbhorType({required NbScript script, double scale = 1}) {
+  final family = switch (script) {
+    NbScript.bengali => kAnekBangla,
+    NbScript.devanagari => kAnekDevanagari,
+    NbScript.latin => kArchivo,
+  };
+  // Sizing follows the script, not the language: Devanagari renders as tall as Bengali at the same
+  // px and needs the same one-to-two-point reduction, while Spanish is metrically English.
+  final indic = script != NbScript.latin;
+  // Letter spacing / uppercase only exist in the Latin locales.
+  double ls(double em) => indic ? 0 : em;
 
   TextStyle s(double px, int weight, double lineMult, {double letterEm = 0, String? fam}) => _style(
         family: fam ?? family,
@@ -115,22 +154,22 @@ NirbhorType buildNirbhorType({required bool isBangla, double scale = 1}) {
       );
 
   return NirbhorType(
-    titleHero: s(isBangla ? 28 : 27, 700, 1.28),
-    header: s(isBangla ? 23 : 22, 700, 1.2),
+    titleHero: s(indic ? 28 : 27, 700, 1.28),
+    header: s(indic ? 23 : 22, 700, 1.2),
     // The Bangla clock carries a period word ("সকাল ৮:০০"), so it is far wider than "08:00" and has
     // to be set smaller to stay on one line — and, like every Bangla role, it is floored to
     // kBanglaMinLine, which is why the designed 0.90x was slicing the tops off its glyphs.
-    alarmTime: s(isBangla ? 58 : 84, 700, 0.90, letterEm: ls(-0.045)),
-    alarmName: s(isBangla ? 23 : 22, 700, 1.1),
+    alarmTime: s(indic ? 58 : 84, 700, 0.90, letterEm: ls(-0.045)),
+    alarmName: s(indic ? 23 : 22, 700, 1.1),
     bigStat: s(46, 700, 1.0, letterEm: ls(-0.03)),
-    cardTitlePrimary: s(isBangla ? 19 : 18, 700, 1.3),
-    cardTitleSecondary: s(isBangla ? 17 : 16, 600, 1.35),
-    body: s(isBangla ? 17 : 16, 400, isBangla ? 1.55 : 1.5),
-    meta: s(isBangla ? 14 : 13.5, 400, 1.45),
+    cardTitlePrimary: s(indic ? 19 : 18, 700, 1.3),
+    cardTitleSecondary: s(indic ? 17 : 16, 600, 1.35),
+    body: s(indic ? 17 : 16, 400, indic ? 1.55 : 1.5),
+    meta: s(indic ? 14 : 13.5, 400, 1.45),
     // Section label: English uses uppercase + spacing; Bangla remains sentence case.
-    sectionLabel: isBangla ? s(14, 600, 1.25) : s(12, 600, 1.2, letterEm: 0.1),
-    buttonLabel: s(isBangla ? 18 : 17, 700, 1.1),
-    statusPill: s(isBangla ? 12 : 11, 600, 1.0),
-    isBangla: isBangla,
+    sectionLabel: indic ? s(14, 600, 1.25) : s(12, 600, 1.2, letterEm: 0.1),
+    buttonLabel: s(indic ? 18 : 17, 700, 1.1),
+    statusPill: s(indic ? 12 : 11, 600, 1.0),
+    script: script,
   );
 }

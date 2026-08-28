@@ -44,3 +44,40 @@ class StatusPill extends StatelessWidget {
         ),
       );
 }
+
+/// Consecutive fully-taken days. Deliberately quiet: adherence is not a game, and a patient who
+/// breaks a long run because they were ill should not be made to feel they lost something. The
+/// number is stated, not celebrated, and it simply disappears below two days.
+class StreakChip extends StatelessWidget {
+  const StreakChip({super.key, required this.days, this.onDark = false});
+
+  final int days;
+
+  /// True on the calm-filled day-complete card, where the chip inverts.
+  final bool onDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final bg = onDark ? colors.paper.withValues(alpha: 0.16) : colors.calmSoft;
+    final fg = onDark ? colors.paper : colors.calmD;
+    return Semantics(
+      label: context.tr('টানা $days দিন', '$days day streak', hi: 'लगातार $days दिन', es: 'racha de $days días'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: bg, borderRadius: NbShapes.chip),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.local_fire_department, size: 15, color: fg),
+            const SizedBox(width: 5),
+            Text(
+              context.tr('${context.num(days)} দিন টানা', '$days days in a row', hi: '$days दिन लगातार', es: '$days días seguidos'),
+              style: context.type.meta.copyWith(color: fg, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

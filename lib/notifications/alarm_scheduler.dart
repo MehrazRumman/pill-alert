@@ -4,10 +4,13 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../data/repository.dart';
 import '../data/settings_store.dart';
+import '../i18n/app_locale.dart';
+import '../i18n/translations.dart';
 import '../domain/dose_scheduler.dart';
 import '../domain/models.dart';
 import '../i18n/numerals.dart';
 import 'nirbhor_notifications.dart';
+import 'notification_actions.dart';
 
 /// Schedules exact alarms for upcoming doses (README > Alarms: full-screen intent at each dose
 /// time). Every upcoming dose in the scheduling window gets its own exact alarm keyed by dose id,
@@ -41,7 +44,27 @@ class AlarmScheduler {
     return int.tryParse(payload.substring(_payloadPrefix.length));
   }
 
-  static NotificationDetails _reminderDetails({required bool fullScreen}) => NotificationDetails(
+  /// Answering from the shade is the common case: an ongoing reminder the patient cannot swipe away
+  /// and cannot answer without opening the app is the shape of a problem, not a reminder.
+  static List<AndroidNotificationAction> _actions(AppLocale locale) => [
+        AndroidNotificationAction(
+          kActionTaken,
+          trIn(locale, 'খেয়েছি', "I've taken it"),
+          showsUserInterface: false,
+          cancelNotification: true,
+        ),
+        AndroidNotificationAction(
+          kActionSnooze,
+          trIn(locale, 'পরে', 'Later', hi: 'बाद में', es: 'Más tarde'),
+          showsUserInterface: false,
+          cancelNotification: true,
+        ),
+      ];
+
+  static NotificationDetails _reminderDetails({
+    required bool fullScreen,
+    required AppLocale locale,
+  }) => NotificationDetails(
         android: AndroidNotificationDetails(
           NirbhorNotifications.channelReminders,
           'মনে করিয়ে দেওয়া',
@@ -61,7 +84,10 @@ class AlarmScheduler {
           audioAttributesUsage: AudioAttributesUsage.alarm,
           enableVibration: true,
           vibrationPattern: NirbhorNotifications.vibrationPattern,
-          color: Color(0xFF2F6B5B),
+          // Mirrors NirbhorColors.calm. Cannot reference the token: this sits in a
+          // const NotificationDetails, and the token fields are final, not const.
+          color: Color(0xFF1F6B70),
+          actions: _actions(locale),
         ),
       );
 
@@ -74,7 +100,7 @@ class AlarmScheduler {
           importance: Importance.defaultImportance,
           priority: Priority.defaultPriority,
           category: AndroidNotificationCategory.reminder,
-          color: Color(0xFFC07138),
+          color: Color(0xFFB4652F), // Mirrors NirbhorColors.warm — see note above.
         ),
       );
 
@@ -136,7 +162,8 @@ class AlarmScheduler {
     final at = dose.scheduledAt;
 
     final time = Numerals.time(dose.hour, dose.minute, settings.isBangla, settings.is24Hour);
-    final title = settings.isBangla ? 'ওষুধ খাওয়ার সময়' : 'Time for your medicine';
+    final title = trIn(settings.locale, 'ওষুধ খাওয়ার সময়', 'Time for your medicine',
+        hi: 'दवा लेने का समय', es: 'Hora de su medicamento');
     final qty = Numerals.quantity(medicine.dosePerIntake, settings.isBangla);
     final body = settings.isBangla
         ? '${medicine.displayName} · $qty${medicine.form.isEmpty ? '' : ' ${medicine.form}'} · $time'
@@ -147,7 +174,10 @@ class AlarmScheduler {
       when: at,
       title: title,
       body: body,
-      details: _reminderDetails(fullScreen: settings.fullScreenAlarm),
+      details: _reminderDetails(
+        fullScreen: settings.fullScreenAlarm,
+        locale: settings.locale,
+      ),
       payload: payloadFor(dose.id),
       mode: scheduleMode,
     );
@@ -159,8 +189,11 @@ class AlarmScheduler {
         title: title,
         body: settings.isBangla
             ? '$body — এখনও জানানো হয়নি'
-            : '$body — still unanswered',
-        details: _reminderDetails(fullScreen: settings.fullScreenAlarm),
+            : '$body — ${trIn(settings.locale, '', 'still unanswered', hi: 'अब तक कोई जवाब नहीं', es: 'aún sin respuesta')}',
+        details: _reminderDetails(
+          fullScreen: settings.fullScreenAlarm,
+          locale: settings.locale,
+        ),
         payload: payloadFor(dose.id),
         mode: scheduleMode,
       );
@@ -170,10 +203,11 @@ class AlarmScheduler {
     await _scheduleAt(
       id: notificationId(dose.id, _missCheckSlot),
       when: at.add(const Duration(minutes: 31)),
-      title: settings.isBangla ? 'ওষুধের ডোজ বাদ পড়েছে' : 'Medicine dose missed',
+      title: trIn(settings.locale, 'ওষুধের ডোজ বাদ পড়েছে', 'Medicine dose missed',
+          hi: 'दवा की खुराक छूट गई', es: 'Dosis de medicamento saltada'),
       body: settings.isBangla
           ? '${medicine.displayName} · $time — খাওয়া হয়ে থাকলে অ্যাপে জানান'
-          : '${medicine.displayName} · $time — open the app if you took it',
+          : '${medicine.displayName} · $time — ${trIn(settings.locale, '', 'open the app if you took it', hi: 'ली हो तो ऐप में बताएँ', es: 'abra la app si ya la tomó')}',
       details: _missedDetails,
       payload: payloadFor(dose.id),
       mode: scheduleMode,
@@ -227,25 +261,28 @@ class AlarmScheduler {
 /// The slice of [SettingsStore] the scheduler needs, resolved for the active locale.
 class AppSettingsView {
   const AppSettingsView({
-    required this.isBangla,
+    required this.locale,
     required this.is24Hour,
     required this.fullScreenAlarm,
     required this.repeatEveryMinutes,
     required this.repeatMax,
   });
 
-  final bool isBangla;
+  final AppLocale locale;
+
+  /// Bengali numerals and period words are the only Bangla-specific behaviour left down here.
+  bool get isBangla => locale.isBangla;
   final bool is24Hour;
   final bool fullScreenAlarm;
   final int repeatEveryMinutes;
   final int repeatMax;
 
-  factory AppSettingsView.from(SettingsStore store, bool deviceIsBangla) {
+  factory AppSettingsView.from(SettingsStore store, String deviceLanguageCode) {
     final s = store.value;
-    final bangla = s.isBangla(deviceIsBangla);
+    final locale = s.resolve(deviceLanguageCode);
     return AppSettingsView(
-      isBangla: bangla,
-      is24Hour: s.is24Hour(bangla),
+      locale: locale,
+      is24Hour: s.is24Hour(locale.isBangla),
       fullScreenAlarm: s.fullScreenAlarm,
       repeatEveryMinutes: s.repeatEveryMinutes,
       repeatMax: s.repeatMax,

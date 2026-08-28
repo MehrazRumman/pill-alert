@@ -62,7 +62,7 @@ class CaregiverNotifyScreen extends StatelessWidget {
               NirbhorTopBar(
                 title: context.tr(
                   '${caregiver.name}-কে জানানো',
-                  'Telling ${caregiver.name}',
+                  'Telling ${caregiver.name}', hi: '${caregiver.name} को बताना', es: 'Avisar a ${caregiver.name}',
                 ),
                 onBack: context.nav.back,
               ),

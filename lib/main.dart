@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'data/app_scope.dart';
 import 'data/repository.dart';
@@ -8,6 +11,7 @@ import 'navigation/app_root.dart';
 import 'notifications/alarm_scheduler.dart';
 import 'notifications/missed_dose_notifier.dart';
 import 'notifications/nirbhor_notifications.dart';
+import 'notifications/notification_actions.dart';
 
 /// App entry point. Builds the container, generates dose occurrences for the next two weeks from
 /// whatever medicines exist, then arms reminders for the upcoming ones.
@@ -21,7 +25,10 @@ Future<void> main() async {
   final container = AppContainer(repository: repository, settings: settings);
 
   int? launchDoseId;
-  await NirbhorNotifications.init(onTap: (response) => _handleTap(response.payload));
+  await NirbhorNotifications.init(
+    onTap: _onNotificationResponse,
+    onBackgroundTap: onBackgroundNotificationAction,
+  );
 
   final launch = await NirbhorNotifications.plugin.getNotificationAppLaunchDetails();
   if (launch?.didNotificationLaunchApp ?? false) {
@@ -42,13 +49,18 @@ Future<void> _armReminders(NirbhorRepository repo, SettingsStore settings) async
   await MissedDoseNotifier.sweep(repo);
   await AlarmScheduler.rescheduleAll(
     repo,
-    settings: AppSettingsView.from(settings, deviceIsBangla()),
+    settings: AppSettingsView.from(settings, deviceLanguageCode()),
   );
 }
 
-/// A reminder tapped while the app is already running routes straight to the alarm screen.
-void _handleTap(String? payload) {
-  final doseId = AlarmScheduler.doseIdFromPayload(payload);
+/// A reminder answered while the app is running. An action button resolves the dose in place; a tap
+/// on the notification body opens the alarm screen instead.
+void _onNotificationResponse(NotificationResponse response) {
+  if (response.actionId != null && response.actionId!.isNotEmpty) {
+    unawaited(handleNotificationAction(response));
+    return;
+  }
+  final doseId = AlarmScheduler.doseIdFromPayload(response.payload);
   if (doseId == null) return;
   pendingAlarmDoseId.value = doseId;
 }
@@ -56,8 +68,8 @@ void _handleTap(String? payload) {
 /// Set when a reminder is tapped in a warm process; the app root watches it and opens the alarm.
 final ValueNotifier<int?> pendingAlarmDoseId = ValueNotifier<int?>(null);
 
-bool deviceIsBangla() =>
-    WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'bn';
+String deviceLanguageCode() =>
+    ui.PlatformDispatcher.instance.locale.languageCode;
 
 void unawaited(Future<void> future) {
   future.catchError((Object _) {

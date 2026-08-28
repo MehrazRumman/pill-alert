@@ -42,6 +42,7 @@ class PrimaryButton extends StatelessWidget {
         height: height,
         enabled: enabled,
         background: background,
+        lifted: true,
         onPressed: onPressed,
         child: _ButtonRow(
           leftAligned: leftAligned,
@@ -111,7 +112,7 @@ class SecondaryButton extends StatelessWidget {
   }
 }
 
-class _ButtonSurface extends StatelessWidget {
+class _ButtonSurface extends StatefulWidget {
   const _ButtonSurface({
     required this.height,
     required this.enabled,
@@ -119,6 +120,7 @@ class _ButtonSurface extends StatelessWidget {
     required this.onPressed,
     required this.child,
     this.border,
+    this.lifted = false,
   });
 
   final double height;
@@ -128,24 +130,77 @@ class _ButtonSurface extends StatelessWidget {
   final VoidCallback onPressed;
   final Widget child;
 
+  /// Filled buttons carry a shadow tinted from their own fill, so the primary action sits above
+  /// the card it is on. Outlined buttons stay flat — a border and a shadow together read as two
+  /// separate attempts to say the same thing.
+  final bool lifted;
+
+  @override
+  State<_ButtonSurface> createState() => _ButtonSurfaceState();
+}
+
+class _ButtonSurfaceState extends State<_ButtonSurface> {
+  bool _down = false;
+
+  static const _press = Duration(milliseconds: 110);
+
+  void _set(bool v) {
+    if (_down != v && mounted) setState(() => _down = v);
+  }
+
   @override
   Widget build(BuildContext context) {
     final shape = BorderRadius.circular(Dimens.radiusButton);
-    return Material(
-        color: background,
-        borderRadius: shape,
-        child: InkWell(
+    final lift = widget.lifted && widget.enabled;
+
+    return AnimatedScale(
+      // Small enough to feel like the surface gave way under the finger rather than that the
+      // layout moved. Anything past ~4% starts to look like a bug on a 64px button.
+      scale: _down ? 0.975 : 1,
+      duration: _press,
+      curve: Curves.easeOut,
+      child: AnimatedContainer(
+        duration: _press,
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(
           borderRadius: shape,
-          onTap: enabled ? onPressed : null,
-          child: Container(
-            height: height < Dimens.tapMin ? Dimens.tapMin : height,
-            decoration: BoxDecoration(borderRadius: shape, border: border),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-            alignment: Alignment.center,
-            child: child,
+          boxShadow: lift
+              ? [
+                  BoxShadow(
+                    color: widget.background.withValues(alpha: _down ? 0.18 : 0.28),
+                    blurRadius: _down ? 8 : 16,
+                    offset: Offset(0, _down ? 2 : 6),
+                  ),
+                ]
+              : null,
+        ),
+        child: Material(
+          color: widget.background,
+          borderRadius: shape,
+          child: InkWell(
+            borderRadius: shape,
+            onTap: widget.enabled
+                ? () {
+                    // Confirming a dose is the app's most consequential tap; a physical tick makes
+                    // it land for a user who may not trust that the screen registered it.
+                    HapticFeedback.selectionClick();
+                    widget.onPressed();
+                  }
+                : null,
+            onTapDown: widget.enabled ? (_) => _set(true) : null,
+            onTapUp: widget.enabled ? (_) => _set(false) : null,
+            onTapCancel: widget.enabled ? () => _set(false) : null,
+            child: Container(
+              height: widget.height < Dimens.tapMin ? Dimens.tapMin : widget.height,
+              decoration: BoxDecoration(borderRadius: shape, border: widget.border),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              alignment: Alignment.center,
+              child: widget.child,
+            ),
           ),
         ),
-      );
+      ),
+    );
   }
 }
 

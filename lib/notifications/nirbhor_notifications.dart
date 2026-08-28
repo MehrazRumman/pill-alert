@@ -54,6 +54,7 @@ class NirbhorNotifications {
   /// Initialises the plugin, the timezone database (scheduling is zoned) and the channels.
   static Future<void> init({
     void Function(NotificationResponse response)? onTap,
+    void Function(NotificationResponse response)? onBackgroundTap,
   }) async {
     if (_ready) return;
     _ready = true;
@@ -83,6 +84,7 @@ class NirbhorNotifications {
         ),
       ),
       onDidReceiveNotificationResponse: onTap,
+      onDidReceiveBackgroundNotificationResponse: onBackgroundTap,
     );
 
     await createChannels();

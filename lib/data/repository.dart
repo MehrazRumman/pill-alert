@@ -40,6 +40,19 @@ class DayCell {
   final DayState state;
 }
 
+/// Which time of day a patient misses most, and how often. Only produced when the history is
+/// strong enough to mean something — see [NirbhorRepository.weakestBlock].
+class BlockInsight {
+  const BlockInsight(this.block, this.missed, this.total);
+
+  final TimeBlock block;
+  final int missed;
+  final int total;
+
+  double get missRate => total == 0 ? 0 : missed / total;
+  int get missPercent => (missRate * 100).round();
+}
+
 class MedAdherence {
   const MedAdherence(this.medicine, this.taken, this.takenLate, this.total);
 
@@ -491,6 +504,82 @@ class NirbhorRepository extends ChangeNotifier {
       }
       return DayCell(date, state);
     });
+  }
+
+  /// Consecutive days, counting back from today, on which every scheduled dose was taken.
+  ///
+  /// A day still in progress neither extends nor breaks the run, so the number never drops just
+  /// because it is morning and today's doses are not due yet. Days with nothing scheduled are
+  /// skipped for the same reason: there was nothing to keep or to break.
+  Future<int> currentStreak({int lookback = 120}) async {
+    final cells = await dayCells(lookback);
+    var streak = 0;
+    for (final cell in cells.reversed) {
+      switch (cell.state) {
+        case DayState.full:
+          streak++;
+        case DayState.future:
+        case DayState.empty:
+          continue;
+        case DayState.partial:
+        case DayState.missed:
+          return streak;
+      }
+    }
+    return streak;
+  }
+
+  /// The next dose still to come, or null when nothing is scheduled ahead.
+  Future<DoseWithMedicine?> nextDose() async {
+    final upcoming = await upcomingDoses();
+    if (upcoming.isEmpty) return null;
+    return doseWithMedicine(upcoming.first.id);
+  }
+
+  /// The block of the day the patient misses most often over the last [days].
+  ///
+  /// Returns null unless the history actually supports a claim: at least [minMissed] misses in
+  /// that block, at least [minTotal] doses scheduled in it, and a miss rate clearly worse than the
+  /// rest of the day. Telling someone they "often miss the evening" on the strength of two doses
+  /// would be a guess dressed as a finding.
+  Future<BlockInsight?> weakestBlock({
+    int days = 30,
+    int minMissed = 3,
+    int minTotal = 6,
+  }) async {
+    final today = dateOnly(DateTime.now());
+    final start = today.subtract(Duration(days: days - 1)).millisecondsSinceEpoch;
+    final end = today.add(const Duration(days: 1)).millisecondsSinceEpoch - 1;
+
+    // Upcoming and skipped doses are excluded: neither is a miss the patient can act on.
+    final settled = (await _dosesBetween(start, end))
+        .where((d) => d.status.isTaken || d.status == DoseStatus.missed)
+        .toList();
+    if (settled.isEmpty) return null;
+
+    final totals = <TimeBlock, int>{};
+    final missed = <TimeBlock, int>{};
+    for (final d in settled) {
+      totals[d.block] = (totals[d.block] ?? 0) + 1;
+      if (d.status == DoseStatus.missed) {
+        missed[d.block] = (missed[d.block] ?? 0) + 1;
+      }
+    }
+
+    BlockInsight? worst;
+    for (final block in TimeBlock.values) {
+      final total = totals[block] ?? 0;
+      final miss = missed[block] ?? 0;
+      if (total < minTotal || miss < minMissed) continue;
+      final candidate = BlockInsight(block, miss, total);
+      if (worst == null || candidate.missRate > worst.missRate) worst = candidate;
+    }
+    if (worst == null) return null;
+
+    // Only worth saying if this block is meaningfully worse than the day as a whole.
+    final overallMissed = settled.where((d) => d.status == DoseStatus.missed).length;
+    final overallRate = overallMissed / settled.length;
+    return worst.missRate > overallRate * 1.25 ? worst : null;
   }
 
   /// Per-medicine adherence over the last [days].

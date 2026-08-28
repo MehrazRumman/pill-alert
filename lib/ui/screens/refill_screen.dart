@@ -159,7 +159,7 @@ class _LowAlertCard extends StatelessWidget {
                     Text(
                       context.tr(
                         '${context.num(stock.count)}টি ${med.form} বাকি · ${context.num(remainingDays)} দিন চলবে',
-                        '${stock.count} ${med.form} left · $remainingDays days',
+                        '${stock.count} ${med.form} left · $remainingDays days', hi: '${stock.count} ${med.form} बची · $remainingDays दिन', es: 'quedan ${stock.count} ${med.form} · $remainingDays días',
                       ),
                       style: context.type.meta.copyWith(color: colors.warmD),
                     ),
@@ -247,10 +247,12 @@ class _StockRow extends StatelessWidget {
                           ? context.tr(
                               '${context.num(count)}টি ${med.form} · ${med.paused ? "এখন বন্ধ" : "সময় ঠিক করা নেই"}',
                               '$count ${med.form} · ${med.paused ? "paused" : "no times set"}',
+                              hi: '$count ${med.form} · ${med.paused ? "अभी बंद" : "समय तय नहीं"}',
+                              es: '$count ${med.form} · ${med.paused ? "en pausa" : "sin horas"}',
                             )
                           : context.tr(
                               '${context.num(count)}টি ${med.form} · ${context.num(days)} দিন চলবে',
-                              '$count ${med.form} · $days days',
+                              '$count ${med.form} · $days days', hi: '$count ${med.form} · $days दिन', es: '$count ${med.form} · $days días',
                             ),
                       style: context.type.meta.copyWith(color: colors.ink3),
                     ),
@@ -379,11 +381,11 @@ class _RestockSheetState extends State<_RestockSheet> {
             days == null
                 ? context.tr(
                     'ঘরে হবে ${context.num(result)}টি — ওষুধটি এখন বন্ধ আছে।',
-                    "You'll have $result — this medicine is paused.",
+                    "You'll have $result — this medicine is paused.", hi: 'आपके पास $result होंगी — यह दवा अभी बंद है।', es: 'Tendrá $result: este medicamento está en pausa.',
                   )
                 : context.tr(
                     'ঘরে হবে ${context.num(result)}টি — প্রায় ${context.num(days)} দিন চলবে।',
-                    "You'll have $result — about $days days.",
+                    "You'll have $result — about $days days.", hi: 'आपके पास $result होंगी — लगभग $days दिन चलेंगी।', es: 'Tendrá $result: unos $days días.',
                   ),
             style: context.type.body.copyWith(color: colors.calmD),
           ),

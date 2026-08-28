@@ -97,4 +97,8 @@ class AddMedicineDraft extends ChangeNotifier {
         highRisk: highRisk,
         paused: false,
       );
+
+  /// Everything a recorded allergy could plausibly match on. The pack name is included because the
+  /// generic a patient reacts to is often printed there and not in the display name.
+  String get allergyHaystack => '$displayName $packName $condition';
 }

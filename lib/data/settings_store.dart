@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/app_settings.dart';
+import '../domain/patient_profile.dart';
 
 /// Persists [AppSettings] in SharedPreferences (the DataStore equivalent). Holds the current value
 /// in memory and notifies on every write, so the app root can rebuild the theme and locale
@@ -14,6 +15,10 @@ class SettingsStore extends ChangeNotifier {
 
   AppSettings get value => _value;
 
+  /// Who the medicines belong to. Read on every rebuild of the More hub and the doctor report, so
+  /// it is held in memory beside the settings rather than re-read from disk.
+  PatientProfile get profile => _readProfile(_prefs);
+
   static const _kLocale = 'locale_pref';
   static const _kTimeFormat = 'time_format';
   static const _kBiggerText = 'bigger_text';
@@ -25,6 +30,15 @@ class SettingsStore extends ChangeNotifier {
   static const _kOnboarding = 'onboarding_complete';
   static const _kPriming = 'priming_shown';
   static const _kInboxReadSignature = 'inbox_read_signature';
+
+  // Patient profile.
+  static const _kName = 'profile_name';
+  static const _kBirthYear = 'profile_birth_year';
+  static const _kBloodGroup = 'profile_blood_group';
+  static const _kAllergies = 'profile_allergies';
+  static const _kConditions = 'profile_conditions';
+  static const _kEmergencyName = 'profile_emergency_name';
+  static const _kEmergencyPhone = 'profile_emergency_phone';
 
   static Future<SettingsStore> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,6 +58,33 @@ class SettingsStore extends ChangeNotifier {
         notificationPrimingShown: p.getBool(_kPriming) ?? false,
         inboxReadSignature: p.getString(_kInboxReadSignature) ?? '',
       );
+
+  static PatientProfile _readProfile(SharedPreferences p) => PatientProfile(
+        name: p.getString(_kName) ?? '',
+        yearOfBirth: p.getInt(_kBirthYear),
+        bloodGroup: p.getString(_kBloodGroup) ?? '',
+        allergies: p.getString(_kAllergies) ?? '',
+        conditions: p.getString(_kConditions) ?? '',
+        emergencyName: p.getString(_kEmergencyName) ?? '',
+        emergencyPhone: p.getString(_kEmergencyPhone) ?? '',
+      );
+
+  /// Writes the whole profile at once. Partial saves are deliberately not offered: the edit screen
+  /// commits one complete object, so a half-written profile can never be persisted.
+  Future<void> saveProfile(PatientProfile profile) => _commit(() async {
+        await _prefs.setString(_kName, profile.name.trim());
+        final year = profile.yearOfBirth;
+        if (year == null) {
+          await _prefs.remove(_kBirthYear);
+        } else {
+          await _prefs.setInt(_kBirthYear, year);
+        }
+        await _prefs.setString(_kBloodGroup, profile.bloodGroup);
+        await _prefs.setString(_kAllergies, profile.allergies.trim());
+        await _prefs.setString(_kConditions, profile.conditions.trim());
+        await _prefs.setString(_kEmergencyName, profile.emergencyName.trim());
+        await _prefs.setString(_kEmergencyPhone, profile.emergencyPhone.trim());
+      });
 
   Future<void> _commit(Future<void> Function() write) async {
     await write();

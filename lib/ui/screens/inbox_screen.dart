@@ -62,7 +62,7 @@ class InboxScreen extends StatelessWidget {
                       icon: Icons.inventory_2,
                       title: context.tr(
                         '${m.displayName} ফুরিয়ে আসছে',
-                        '${m.displayName} running low',
+                        '${m.displayName} running low', hi: '${m.displayName} कम पड़ रही है', es: 'Queda poco de ${m.displayName}',
                       ),
                       body: context.tr('রিফিলে গিয়ে মজুত ঠিক করুন', 'Open Refill to update stock'),
                       amber: true,

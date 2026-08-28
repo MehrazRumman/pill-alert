@@ -8,6 +8,7 @@ import '../../navigation/nav_actions.dart';
 import '../../notifications/alarm_scheduler.dart';
 import '../../theme/theme.dart';
 import '../components/buttons.dart';
+import '../components/overlays.dart';
 import '../components/surfaces.dart';
 import '../marks/medicine_mark.dart';
 import 'add_flow_common.dart';
@@ -26,20 +27,39 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
 
   Future<void> _save() async {
     if (_saving) return;
+    final draft = context.draft;
+
+    // Checked before anything is written. Nirbhor gives no medical advice, so this asks rather than
+    // blocks — the patient may well have been told to take it anyway.
+    final matches = context.settingsStore.profile.allergyMatches(draft.allergyHaystack);
+    if (matches.isNotEmpty) {
+      final named = matches.join(', ');
+      final proceed = await confirmAction(
+        context,
+        title: context.tr('অ্যালার্জির সঙ্গে মিলছে', 'This matches a recorded allergy'),
+        message: context.tr(
+          'আপনার তথ্যে "$named" অ্যালার্জি হিসেবে লেখা আছে। নিশ্চিত না হলে ডাক্তারকে জিজ্ঞেস করুন।',
+          'Your details record "$named" as an allergy. Ask your doctor if you are unsure.', hi: 'आपकी जानकारी में "$named" एलर्जी के रूप में दर्ज है। संदेह हो तो डॉक्टर से पूछें।', es: 'Sus datos registran "$named" como alergia. Pregunte a su médico si tiene dudas.',
+        ),
+        confirmLabel: context.tr('তবুও যোগ করুন', 'Add anyway'),
+        cancelLabel: context.tr('ফিরে যান', 'Go back'),
+      );
+      if (!proceed || !mounted) return;
+    }
+
     setState(() {
       _saving = true;
       _saveError = false;
     });
-    final draft = context.draft;
     final repo = context.repo;
     final store = context.settingsStore;
-    final bangla = context.isBangla;
+    final localeCode = context.locale.code;
     final nav = context.nav;
     try {
       await repo.upsertMedicine(draft.toMedicine());
       await AlarmScheduler.rescheduleAll(
         repo,
-        settings: AppSettingsView.from(store, bangla),
+        settings: AppSettingsView.from(store, localeCode),
       );
       // Don't reset here — this screen is still mounted during the transition and would flash
       // empty. Every entry point into the flow resets the draft.
@@ -59,9 +79,9 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
 
     final whenWords = draft.timeTokens.map((t) {
       return switch (TimeBlock.fromToken(t)) {
-        TimeBlock.morning => bangla ? 'সকাল' : 'morning',
-        TimeBlock.noon => bangla ? 'দুপুর' : 'afternoon',
-        TimeBlock.night => bangla ? 'রাত' : 'night',
+        TimeBlock.morning => context.tr('সকাল', 'morning'),
+        TimeBlock.noon => context.tr('দুপুর', 'afternoon'),
+        TimeBlock.night => context.tr('রাত', 'night'),
       };
     }).join(', ');
 
@@ -93,6 +113,8 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
         builder: (context, existing) {
           final name = draft.displayName.trim().toLowerCase();
           final strength = draft.strength.trim().toLowerCase();
+          final allergyHits =
+              context.settingsStore.profile.allergyMatches(draft.allergyHaystack);
           final duplicate = existing.any((m) =>
               m.displayName.trim().toLowerCase() == name &&
               m.strength.trim().toLowerCase() == strength);
@@ -127,6 +149,36 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
                           style: context.type.titleHero.copyWith(color: colors.ink),
                         ),
                         const SizedBox(height: Dimens.groupGap),
+
+                        if (allergyHits.isNotEmpty) ...[
+                          TintPanel(
+                            background: colors.warmSoft,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  context.tr(
+                                    'আপনার অ্যালার্জির তালিকার সঙ্গে মিলছে',
+                                    'This matches your allergy list',
+                                  ),
+                                  style: context.type.cardTitleSecondary
+                                      .copyWith(color: colors.warmD),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  context.tr(
+                                    '"${allergyHits.join(', ')}" আপনার তথ্যে অ্যালার্জি হিসেবে লেখা আছে।',
+                                    '"${allergyHits.join(', ')}" is recorded in your details as an allergy.',
+                                    hi: '"${allergyHits.join(', ')}" आपकी जानकारी में एलर्जी के रूप में दर्ज है।',
+                                    es: '"${allergyHits.join(', ')}" está registrada en sus datos como alergia.',
+                                  ),
+                                  style: context.type.body.copyWith(color: colors.warmD),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: Dimens.groupGap),
+                        ],
 
                         if (duplicate) ...[
                           TintPanel(

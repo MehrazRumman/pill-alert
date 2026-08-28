@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../i18n/numerals.dart';
+import '../i18n/app_locale.dart';
+import '../i18n/translations.dart';
 import 'colors.dart';
 import 'typography.dart';
 
@@ -18,13 +20,16 @@ class NirbhorTheme extends InheritedWidget {
   const NirbhorTheme({
     super.key,
     required this.type,
-    required this.isBangla,
+    required this.locale,
     required this.is24Hour,
     required super.child,
   });
 
   final NirbhorType type;
-  final bool isBangla;
+
+  /// The language the app is actually being read in, already resolved from the patient's
+  /// preference and the device.
+  final AppLocale locale;
   final bool is24Hour;
 
   static NirbhorTheme of(BuildContext context) {
@@ -35,18 +40,31 @@ class NirbhorTheme extends InheritedWidget {
 
   @override
   bool updateShouldNotify(NirbhorTheme old) =>
-      type != old.type || isBangla != old.isBangla || is24Hour != old.is24Hour;
+      type != old.type || locale != old.locale || is24Hour != old.is24Hour;
 }
 
 /// The token accessors every widget uses in place of raw hexes and sizes.
 extension NbContext on BuildContext {
   NirbhorColors get colors => nbColors;
   NirbhorType get type => NirbhorTheme.of(this).type;
-  bool get isBangla => NirbhorTheme.of(this).isBangla;
+  AppLocale get locale => NirbhorTheme.of(this).locale;
+
+  /// Kept because numerals, date words and time-of-day periods are Bangla-specific, not merely
+  /// non-Latin — Hindi uses Western digits and its own month names.
+  bool get isBangla => locale.isBangla;
   bool get is24Hour => NirbhorTheme.of(this).is24Hour;
 
-  /// Picks Bangla or English copy for the active locale.
-  String tr(String bn, String en) => isBangla ? bn : en;
+  /// Picks copy for the active locale.
+  ///
+  /// Bangla and English are passed at the call site, as they always were — that pairing mirrors how
+  /// the design is written and there are 440 of them. Hindi and Spanish are looked up by the
+  /// English string, which acts as the message key, so adding a language touches no call site. Only
+  /// the handful that interpolate a value have to pass [hi] and [es] explicitly, because their
+  /// English text is built at runtime and cannot be a key.
+  ///
+  /// An untranslated string falls back to English rather than showing a key or an empty box.
+  String tr(String bn, String en, {String? hi, String? es}) =>
+      trIn(locale, bn, en, hi: hi, es: es);
 
   /// Localised integer (Bengali numerals in the Bangla locale).
   String num(int value) => Numerals.number(value, isBangla);

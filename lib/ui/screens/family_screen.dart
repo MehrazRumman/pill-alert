@@ -29,7 +29,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
   Future<void> _edit(BuildContext context, Caregiver? existing) async {
     final updated = await showDialog<Caregiver>(
       context: context,
-      barrierColor: const Color(0x6B1B2A26),
+      barrierColor: nbColors.ink.withValues(alpha: 0.42),
       builder: (context) => _CaregiverDialog(existing: existing),
     );
     if (updated != null && context.mounted) await context.repo.upsertCaregiver(updated);
@@ -41,7 +41,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
       title: context.tr('যত্নকারীকে সরাবেন?', 'Remove this caregiver?'),
       message: context.tr(
         '${existing.name} আর আপনার ওষুধের হিসাব পাবেন না। চাইলে পরে আবার যুক্ত করতে পারবেন।',
-        '${existing.name} will stop following your medicine record. You can add them again later.',
+        '${existing.name} will stop following your medicine record. You can add them again later.', hi: '${existing.name} अब आपकी दवा का हिसाब नहीं देख पाएँगे। बाद में दोबारा जोड़ सकते हैं।', es: '${existing.name} dejará de ver su registro de medicación. Puede añadirle otra vez más adelante.',
       ),
       confirmLabel: context.tr('সরিয়ে দিন', 'Remove'),
       cancelLabel: context.tr('রেখে দিন', 'Keep them'),
@@ -75,6 +75,11 @@ class _FamilyScreenState extends State<FamilyScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Stated first, not buried at the foot of the screen. Everything below
+                        // saves correctly, but nothing is delivered to anyone yet, and a patient
+                        // relying on family alerts that never arrive is the worst way to find out.
+                        const _ComingSoonPanel(),
+                        const SizedBox(height: Dimens.groupGap),
                         if (cg != null) ...[
                           _CaregiverCard(
                             cg: cg,
@@ -120,37 +125,8 @@ class _FamilyScreenState extends State<FamilyScreen> {
                             onPressed: context.nav.openCaregiverNotify,
                             height: 52,
                           ),
-                        ] else
-                          NbCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Text(
-                                  context.tr(
-                                    'এখনও কেউ যুক্ত নেই',
-                                    'No one is following along yet',
-                                  ),
-                                  style:
-                                      context.type.cardTitlePrimary.copyWith(color: colors.ink),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  context.tr(
-                                    'পরিবারের একজনকে যুক্ত করুন — ডোজ বাদ পড়লে বা ওষুধ ফুরিয়ে এলে তাঁকে জানানো যাবে।',
-                                    'Add a family member so they can be told when a dose is missed or a medicine runs out.',
-                                  ),
-                                  style: context.type.body.copyWith(color: colors.ink2),
-                                ),
-                                const SizedBox(height: 14),
-                                PrimaryButton(
-                                  text: context.tr('যত্নকারী যোগ করুন', 'Add a caregiver'),
-                                  onPressed: () => _edit(context, null),
-                                  height: 56,
-                                ),
-                              ],
-                            ),
-                          ),
-                        const SizedBox(height: Dimens.groupGap),
+                          const SizedBox(height: Dimens.groupGap),
+                        ],
 
                         // Invite block.
                         TintPanel(
@@ -242,16 +218,6 @@ class _FamilyScreenState extends State<FamilyScreen> {
                         ),
                         const SizedBox(height: Dimens.groupGap),
 
-                        TintPanel(
-                          background: colors.sage,
-                          child: Text(
-                            context.tr(
-                              'এখন পর্যন্ত এই বার্তাগুলো শুধু এই ফোনেই রাখা হয় — ইমেইল বা এসএমএস পাঠানো এখনও চালু হয়নি।',
-                              "For now these alerts stay on this phone — email and SMS delivery isn't switched on yet.",
-                            ),
-                            style: context.type.meta.copyWith(color: colors.ink2),
-                          ),
-                        ),
 
                         if (alerts.isNotEmpty) ...[
                           const SizedBox(height: Dimens.groupGap),
@@ -614,6 +580,45 @@ class _AlertLine extends StatelessWidget {
             child: Text(item.message, style: context.type.meta.copyWith(color: colors.ink2)),
           ),
           Text(item.outcome, style: context.type.meta.copyWith(color: colors.ink3)),
+        ],
+      ),
+    );
+  }
+}
+
+
+/// The standing notice on this screen: caregivers can be set up, but nothing is delivered yet.
+class _ComingSoonPanel extends StatelessWidget {
+  const _ComingSoonPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return TintPanel(
+      background: colors.warmSoft,
+      radius: Dimens.radiusLargeCard,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.schedule, size: 20, color: colors.warmD),
+              const SizedBox(width: 8),
+              Text(
+                context.tr('শীঘ্রই আসছে', 'Coming soon'),
+                style: context.type.cardTitlePrimary.copyWith(color: colors.warmD),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            context.tr(
+              'পরিবারকে জানানোর সুবিধাটি এখনও চালু হয়নি। এখানে যা যোগ করবেন তা সেভ থাকবে, কিন্তু আপাতত কোনো ইমেইল, এসএমএস বা খবর পাঠানো হয় না।',
+              "Telling your family isn't switched on yet. Anything you set up here is saved, but for "
+              'now no email, SMS or alert is actually sent.',
+            ),
+            style: context.type.body.copyWith(color: colors.warmD),
+          ),
         ],
       ),
     );

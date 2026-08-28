@@ -74,6 +74,35 @@ The palette's character is unchanged: `ink3` is the same desaturated green-grey,
 read, and the due-now pill is still amber. This matters more than usual here — the users are elderly,
 and the alarm is answered half-asleep.
 
+## Reminder delivery — the two faults that made it silent
+
+Worth knowing about, because neither is visible without firing a real alarm and both are easy to
+reintroduce:
+
+- **The plugin's receivers are the app's to declare.** `flutter_local_notifications` ships a
+  manifest containing permissions only. Without
+  `com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver` in
+  `android/app/src/main/AndroidManifest.xml`, the exact alarm still fires and is consumed, but the
+  broadcast targets a class Android cannot resolve, so it is dropped and no reminder is ever posted.
+  `ScheduledNotificationBootReceiver` (re-arming after a reboot) and `ActionBroadcastReceiver`
+  (the notification's own buttons) are declared alongside it.
+- **The small-icon name must be bare.** The plugin resolves it with
+  `getIdentifier(name, "drawable", package)`, so the widely-copied `@mipmap/ic_launcher` returns 0 —
+  and a notification whose small icon is 0 is discarded silently. Use `kNotificationIcon`
+  (`'ic_stat_nirbhor'`), which is also a purpose-drawn alpha silhouette: Android keeps only the alpha
+  channel and paints it white, so a full-colour launcher icon would render as a featureless blob.
+
+Testing this needs care: AlarmManager anchors an RTC alarm to elapsed-realtime when it is scheduled,
+so moving the device clock forward *after* arming never delivers it. Set the clock first, launch the
+app so it arms at that wall time, then wait in real time.
+
+## Icons
+
+`dart run tool/make_icons.dart` regenerates the launcher PNGs, the notification silhouettes and the
+512px store asset from one drawing. The adaptive icon itself is hand-authored as vector drawables in
+`android/app/src/main/res/drawable/ic_launcher_*.xml` — the capsule sized to sit inside the 66dp
+safe circle, split by a transparent seam so the background gradient shows through it.
+
 ## Where this port differs
 
 - **Missed doses.** The Kotlin build flipped a dose to MISSED from a `BroadcastReceiver` at the

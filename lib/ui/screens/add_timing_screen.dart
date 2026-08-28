@@ -187,7 +187,7 @@ class AddTimingScreen extends StatelessWidget {
                             child: Text(
                               context.tr(
                                 'তাহলে অ্যালার্ম বাজবে $times-এ। সময় পছন্দ না হলে পরে বদলে নিতে পারবেন।',
-                                'Alarms will ring at $times. You can change the times later.',
+                                'Alarms will ring at $times. You can change the times later.', hi: 'अलार्म $times पर बजेंगे। समय बाद में बदल सकते हैं।', es: 'Las alarmas sonarán a las $times. Puede cambiar las horas después.',
                               ),
                               style: context.type.body.copyWith(color: colors.calmD),
                             ),

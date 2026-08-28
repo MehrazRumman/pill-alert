@@ -72,7 +72,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
 
   Future<void> _rearm() => AlarmScheduler.rescheduleAll(
         context.repo,
-        settings: AppSettingsView.from(context.settingsStore, context.isBangla),
+        settings: AppSettingsView.from(context.settingsStore, context.locale.code),
       );
 
   Future<void> _resolve(Future<void> Function(DoseWithMedicine dwm) action,

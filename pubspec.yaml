@@ -82,6 +82,9 @@ flutter:
     - family: AnekBangla
       fonts:
         - asset: assets/fonts/AnekBangla.ttf
+    - family: AnekDevanagari
+      fonts:
+        - asset: assets/fonts/AnekDevanagari.ttf
     - family: Archivo
       fonts:
         - asset: assets/fonts/Archivo.ttf

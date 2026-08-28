@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../data/app_scope.dart';
 import '../../data/repository.dart';
 import '../../navigation/nav_actions.dart';
+import '../../domain/patient_profile.dart';
 import '../../theme/theme.dart';
 import '../components/buttons.dart';
 import '../components/controls.dart';
@@ -48,6 +49,7 @@ class _DoctorReportScreenState extends State<DoctorReportScreen> {
         window: window,
         medicines: perMed,
         latinNames: _latinNames,
+        profile: context.settingsStore.profile,
       );
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/nirbhor-medication-report.pdf');
@@ -71,6 +73,7 @@ class _DoctorReportScreenState extends State<DoctorReportScreen> {
         window: window,
         medicines: perMed,
         latinNames: _latinNames,
+        profile: context.settingsStore.profile,
       );
       final saved = await FilePicker.saveFile(
         fileName: 'nirbhor-medication-report-$_days-days.pdf',
@@ -153,18 +156,81 @@ class _DoctorReportScreenState extends State<DoctorReportScreen> {
                                 ),
                                 style: context.type.cardTitleSecondary.copyWith(
                                   fontSize: 16,
-                                  color: const Color(0xFF1B2A26),
+                                  color: colors.ink,
                                 ),
                               ),
                               Text(
                                 context.tr(
                                   'রোগীর নিজের হিসাব · গত ${context.num(_days)} দিন',
-                                  "Patient's own record · last $_days days",
+                                  "Patient's own record · last $_days days", hi: 'रोगी का अपना रिकॉर्ड · पिछले $_days दिन', es: 'Registro del propio paciente · últimos $_days días',
                                 ),
                                 style: context.type.meta.copyWith(
                                   fontSize: 12,
-                                  color: const Color(0xFF4A5C56),
+                                  color: colors.ink2,
                                 ),
+                              ),
+                              // Same patient block the PDF prints, so the preview is honest about
+                              // what the doctor will actually receive.
+                              Builder(
+                                builder: (context) {
+                                  final p = context.settingsStore.profile;
+                                  if (p.isEmpty) return const SizedBox.shrink();
+                                  final age = p.ageOn(DateTime.now());
+                                  final rows = <(String, String, bool)>[
+                                    if (p.name.trim().isNotEmpty)
+                                      (context.tr('রোগী', 'Patient'), p.name.trim(), false),
+                                    if (age != null)
+                                      (context.tr('বয়স', 'Age'), context.num(age), false),
+                                    if (p.bloodGroup.isNotEmpty)
+                                      (context.tr('রক্তের গ্রুপ', 'Blood group'), p.bloodGroup, false),
+                                    if (p.allergies.trim().isNotEmpty)
+                                      (context.tr('অ্যালার্জি', 'Allergies'), p.allergies.trim(), true),
+                                    if (p.conditions.trim().isNotEmpty)
+                                      (context.tr('অবস্থা', 'Conditions'), p.conditions.trim(), false),
+                                  ];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 12),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: colors.line),
+                                        borderRadius: BorderRadius.circular(Dimens.radiusChip),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          for (final r in rows)
+                                            Padding(
+                                              padding: const EdgeInsets.only(bottom: 4),
+                                              child: Row(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  SizedBox(
+                                                    width: 96,
+                                                    child: Text(
+                                                      r.$1,
+                                                      style: context.type.meta
+                                                          .copyWith(color: colors.ink3),
+                                                    ),
+                                                  ),
+                                                  Expanded(
+                                                    child: Text(
+                                                      r.$2,
+                                                      style: context.type.meta.copyWith(
+                                                        color: r.$3 ? colors.warmD : colors.ink,
+                                                        fontWeight:
+                                                            r.$3 ? FontWeight.w700 : null,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                               const SizedBox(height: 14),
                               Row(
@@ -220,7 +286,7 @@ class _DoctorReportScreenState extends State<DoctorReportScreen> {
                                                   : context.type.asBangla(context.type.meta))
                                               .copyWith(
                                             fontSize: 12,
-                                            color: const Color(0xFF1B2A26),
+                                            color: colors.ink,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -252,7 +318,7 @@ class _DoctorReportScreenState extends State<DoctorReportScreen> {
                                         context.percent(m.percent),
                                         style: context.type.meta.copyWith(
                                           fontSize: 12,
-                                          color: const Color(0xFF4A5C56),
+                                          color: colors.ink2,
                                         ),
                                       ),
                                     ],
@@ -266,7 +332,7 @@ class _DoctorReportScreenState extends State<DoctorReportScreen> {
                                 ),
                                 style: context.type.meta.copyWith(
                                   fontSize: 11,
-                                  color: const Color(0xFF8B9A94),
+                                  color: colors.ink3,
                                 ),
                               ),
                             ],
@@ -398,13 +464,16 @@ Future<Uint8List> _buildReportPdf({
   required AdherenceWindow window,
   required List<MedAdherence> medicines,
   required bool latinNames,
+  required PatientProfile profile,
 }) async {
   final bangla = pw.Font.ttf(await rootBundle.load('assets/fonts/AnekBangla.ttf'));
   final latin = pw.Font.ttf(await rootBundle.load('assets/fonts/Archivo.ttf'));
 
-  const ink = PdfColor.fromInt(0xFF1B2A26);
-  const ink2 = PdfColor.fromInt(0xFF4A5C56);
-  const line = PdfColor.fromInt(0xFFDBE4DF);
+  // Mirrors NirbhorColors; PdfColor cannot take the token directly.
+  const ink = PdfColor.fromInt(0xFF14262A);
+  const ink2 = PdfColor.fromInt(0xFF42585D);
+  const line = PdfColor.fromInt(0xFFD2DADA);
+  const warmD = PdfColor.fromInt(0xFF7C4218);
 
   final today = DateTime.now();
   final stamp = '${today.year}-${today.month.toString().padLeft(2, '0')}-'
@@ -420,6 +489,17 @@ Future<Uint8List> _buildReportPdf({
         text,
         style: pw.TextStyle(font: latin, fontSize: 12, color: ink2, fontWeight: pw.FontWeight.bold),
       );
+
+  // (label, value, emphasise). Allergies are emphasised: they are the one line on this sheet that
+  // changes what a doctor should not prescribe.
+  final age = profile.ageOn(today);
+  final patientRows = <(String, String, bool)>[
+    if (profile.name.trim().isNotEmpty) ('Patient', profile.name.trim(), false),
+    if (age != null) ('Age', '$age', false),
+    if (profile.bloodGroup.isNotEmpty) ('Blood group', profile.bloodGroup, false),
+    if (profile.allergies.trim().isNotEmpty) ('Allergies', profile.allergies.trim(), true),
+    if (profile.conditions.trim().isNotEmpty) ('Conditions', profile.conditions.trim(), false),
+  ];
 
   doc.addPage(
     pw.MultiPage(
@@ -443,6 +523,52 @@ Future<Uint8List> _buildReportPdf({
         ],
       ),
       build: (context) => [
+        // Who the record belongs to. Printed first: a sheet of adherence numbers with no patient
+        // on it is of no use to a doctor holding several of them.
+        if (!profile.isEmpty) ...[
+          pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: line, width: 0.8),
+              borderRadius: pw.BorderRadius.circular(6),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                for (final row in patientRows) ...[
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(bottom: 4),
+                    child: pw.Row(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.SizedBox(
+                          width: 92,
+                          child: pw.Text(
+                            row.$1,
+                            style: pw.TextStyle(font: latin, fontSize: 11, color: ink2),
+                          ),
+                        ),
+                        pw.Expanded(
+                          child: pw.Text(
+                            row.$2,
+                            style: pw.TextStyle(
+                              font: latin,
+                              fontSize: 11.5,
+                              color: row.$3 ? warmD : ink,
+                              fontWeight: row.$3 ? pw.FontWeight.bold : pw.FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 20),
+        ],
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [

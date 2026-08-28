@@ -72,12 +72,39 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  /// Confirming works at any hour. Someone who takes their morning pill at 7:40 must be able to
+  /// record it; the old screen only offered a button once the block time had passed.
+  Future<void> _confirm(DoseWithMedicine dwm) async {
+    await context.repo.markTaken(dwm.dose.id);
+    // The reminder notification is ongoing; nothing else clears it.
+    await AlarmScheduler.clearForDose(dwm.dose.id);
+    _showUndo(dwm);
+  }
+
+  Future<void> _undo(DoseWithMedicine dwm) async {
+    _undoTimer?.cancel();
+    if (mounted) setState(() => _lastTaken = null);
+    await context.repo.undoTaken(dwm.dose.id);
+    await _rearm();
+  }
+
+  Future<void> _snooze(DoseWithMedicine dwm) async {
+    await context.repo.snoozeDose(dwm.dose.id);
+    await AlarmScheduler.clearForDose(dwm.dose.id);
+    await _rearm();
+  }
+
+  Future<void> _skip(DoseWithMedicine dwm) async {
+    await context.repo.skipDose(dwm.dose.id);
+    await AlarmScheduler.clearForDose(dwm.dose.id);
+  }
+
   Future<void> _rearm() async {
     final repo = context.repo;
     final store = context.settingsStore;
     await AlarmScheduler.rescheduleAll(
       repo,
-      settings: AppSettingsView.from(store, context.isBangla),
+      settings: AppSettingsView.from(store, context.locale.code),
     );
   }
 
@@ -95,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
             blocks: await repo.timelineFor(_today),
             medicines: await repo.medicines(),
             stock: await repo.stockStatuses(),
+            streak: await repo.currentStreak(),
           ),
           builder: (context, data) {
             final blocks = data.blocks;
@@ -115,6 +143,19 @@ class _HomeScreenState extends State<HomeScreen> {
             }
             final allDone = total > 0 && taken + skipped == total;
 
+            // The earliest dose still waiting — the one the screen should be about.
+            DoseWithMedicine? nextDose;
+            for (final b in blocks) {
+              for (final d in b.doses) {
+                if (d.dose.status != DoseStatus.upcoming) continue;
+                if (nextDose == null ||
+                    d.dose.scheduledEpochMillis < nextDose.dose.scheduledEpochMillis) {
+                  nextDose = d;
+                }
+              }
+            }
+            final next = nextDose;
+
             return Stack(
               children: [
                 Column(
@@ -124,6 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       today: _today,
                       unread: unread,
                       onBell: context.nav.openInbox,
+                      streak: data.streak,
                     ),
                     Expanded(
                       child: SingleChildScrollView(
@@ -142,30 +184,29 @@ class _HomeScreenState extends State<HomeScreen> {
                             if (data.medicines.isEmpty)
                               const _EmptyHome()
                             else if (allDone)
-                              _DayComplete(taken: taken, skipped: skipped)
+                              _DayComplete(taken: taken, skipped: skipped, streak: data.streak)
                             else ...[
-                              _ProgressSummary(taken: taken, skipped: skipped, total: total),
+                              if (next != null)
+                                _NextDoseCard(
+                                  next: next,
+                                  now: _now,
+                                  taken: taken,
+                                  total: total,
+                                  onTaken: () => _confirm(next),
+                                  onSnooze: () => _snooze(next),
+                                )
+                              else
+                                _ProgressSummary(taken: taken, skipped: skipped, total: total),
                               for (final block in blocks) ...[
                                 const SizedBox(height: Dimens.groupGap),
                                 _TimeBlockSection(
                                   block: block,
                                   now: _now,
                                   stockById: stockById,
-                                  onTaken: (dwm) async {
-                                    await context.repo.markTaken(dwm.dose.id);
-                                    // The reminder notification is ongoing; nothing else clears it.
-                                    await AlarmScheduler.clearForDose(dwm.dose.id);
-                                    _showUndo(dwm);
-                                  },
-                                  onSnooze: (dwm) async {
-                                    await context.repo.snoozeDose(dwm.dose.id);
-                                    await AlarmScheduler.clearForDose(dwm.dose.id);
-                                    await _rearm();
-                                  },
-                                  onSkip: (dwm) async {
-                                    await context.repo.skipDose(dwm.dose.id);
-                                    await AlarmScheduler.clearForDose(dwm.dose.id);
-                                  },
+                                  onTaken: _confirm,
+                                  onUndo: _undo,
+                                  onSnooze: _snooze,
+                                  onSkip: _skip,
                                   onOpenMedicine: (dwm) =>
                                       context.nav.openMedicine(dwm.medicine.id),
                                 ),
@@ -185,16 +226,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: UndoToast(
                       message: context.tr(
                         '${_lastTaken!.medicine.displayName} খাওয়া হয়েছে',
-                        '${_lastTaken!.medicine.displayName} taken',
+                        '${_lastTaken!.medicine.displayName} taken', hi: '${_lastTaken!.medicine.displayName} ली गई', es: '${_lastTaken!.medicine.displayName} tomada',
                       ),
                       actionLabel: context.tr('ফিরিয়ে নিন', 'Undo'),
-                      onAction: () async {
-                        final dose = _lastTaken!;
-                        _undoTimer?.cancel();
-                        setState(() => _lastTaken = null);
-                        await context.repo.undoTaken(dose.dose.id);
-                        await _rearm();
-                      },
+                      onAction: () => _undo(_lastTaken!),
                     ),
                   ),
               ],
@@ -207,11 +242,19 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeData {
-  const _HomeData({required this.blocks, required this.medicines, required this.stock});
+  const _HomeData({
+    required this.blocks,
+    required this.medicines,
+    required this.stock,
+    required this.streak,
+  });
 
   final List<TimelineBlock> blocks;
   final List<Medicine> medicines;
   final List<StockStatus> stock;
+
+  /// Consecutive fully-taken days ending today.
+  final int streak;
 }
 
 /// A reminder that cannot ring is the one failure this app must never keep quiet about.
@@ -333,12 +376,14 @@ class _HomeHeader extends StatelessWidget {
     required this.today,
     required this.unread,
     required this.onBell,
+    required this.streak,
   });
 
   final TimeOfDay now;
   final DateTime today;
   final bool unread;
   final VoidCallback onBell;
+  final int streak;
 
   @override
   Widget build(BuildContext context) {
@@ -367,9 +412,22 @@ class _HomeHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(greeting, style: context.type.header.copyWith(color: colors.ink)),
-                        Text(
-                          dateString(today, context.isBangla),
-                          style: context.type.meta.copyWith(color: colors.ink3),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                dateStringFor(today, context.locale),
+                                style: context.type.meta.copyWith(color: colors.ink3),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            // Shown from two days, not one: "1 day in a row" is not a run, and
+                            // celebrating it cheapens the number once it is genuinely long.
+                            if (streak >= 2) ...[
+                              const SizedBox(width: 8),
+                              StreakChip(days: streak),
+                            ],
+                          ],
                         ),
                       ],
                     ),
@@ -447,12 +505,12 @@ class _ProgressSummary extends StatelessWidget {
                 Text(
                   context.tr(
                     '${context.num(total)}টির মধ্যে ${context.num(taken)}টি ডোজ নেওয়া হয়েছে',
-                    '$taken of $total doses taken',
+                    '$taken of $total doses taken', hi: '$total में से $taken खुराक ली गईं', es: '$taken de $total dosis tomadas',
                   ),
                   style: context.type.cardTitleSecondary.copyWith(color: colors.calmD),
                 ),
                 Text(
-                  context.tr('আর ${context.num(remaining)}টি বাকি', '$remaining to go'),
+                  context.tr('আর ${context.num(remaining)}টি বাকি', '$remaining to go', hi: '$remaining बाकी', es: 'faltan $remaining'),
                   style: context.type.meta.copyWith(color: colors.ink2),
                 ),
               ],
@@ -472,6 +530,7 @@ class _TimeBlockSection extends StatelessWidget {
     required this.now,
     required this.stockById,
     required this.onTaken,
+    required this.onUndo,
     required this.onSnooze,
     required this.onSkip,
     required this.onOpenMedicine,
@@ -481,6 +540,7 @@ class _TimeBlockSection extends StatelessWidget {
   final TimeOfDay now;
   final Map<String, StockStatus> stockById;
   final ValueChanged<DoseWithMedicine> onTaken;
+  final ValueChanged<DoseWithMedicine> onUndo;
   final ValueChanged<DoseWithMedicine> onSnooze;
   final ValueChanged<DoseWithMedicine> onSkip;
   final ValueChanged<DoseWithMedicine> onOpenMedicine;
@@ -518,11 +578,8 @@ class _TimeBlockSection extends StatelessWidget {
                 color: state == _BlockState.done ? colors.ink3 : colors.ink,
               ),
             ),
-            const SizedBox(width: 8),
-            Text(
-              context.clock(block.hour, block.minute),
-              style: context.type.meta.copyWith(color: colors.ink3),
-            ),
+            // The clock lives on each row now. In Bangla the clock string already opens with its
+            // period word, so a heading of "সকাল  সকাল ৮:০০" said "morning" twice.
             const Spacer(),
             switch (state) {
               _BlockState.done => Row(
@@ -562,6 +619,7 @@ class _TimeBlockSection extends StatelessWidget {
               lowStock: low,
               lowCount: ss?.count ?? 0,
               onTaken: () => onTaken(dwm),
+              onUndo: () => onUndo(dwm),
               onSnooze: () => onSnooze(dwm),
               onSkip: () => onSkip(dwm),
               onOpenMedicine: () => onOpenMedicine(dwm),
@@ -581,6 +639,7 @@ class DoseCard extends StatelessWidget {
     required this.lowStock,
     required this.lowCount,
     required this.onTaken,
+    required this.onUndo,
     required this.onSnooze,
     required this.onSkip,
     required this.onOpenMedicine,
@@ -591,6 +650,7 @@ class DoseCard extends StatelessWidget {
   final bool lowStock;
   final int lowCount;
   final VoidCallback onTaken;
+  final VoidCallback onUndo;
   final VoidCallback onSnooze;
   final VoidCallback onSkip;
   final VoidCallback onOpenMedicine;
@@ -671,15 +731,17 @@ class DoseCard extends StatelessWidget {
       );
     }
 
+    // The row carries what a person needs to act: when, and how much. Two doses of the same
+    // medicine used to render identically, told apart only by a heading centimetres away.
+    final when = context.clock(dwm.dose.hour, dwm.dose.minute);
+    final amount = '${context.qty(med.dosePerIntake)} ${med.form}'.trim();
     final sub = taken
-        ? context.tr('নেওয়া হয়েছে', 'Taken')
+        ? context.tr('$when-এ নেওয়া হয়েছে', 'Taken at $when', hi: '$when पर ली गई', es: 'Tomada a las $when')
         : missed
-            ? context.tr('বাদ পড়েছে', 'Missed')
+            ? context.tr('$when · বাদ পড়েছে', '$when · missed', hi: '$when · छूटी', es: '$when · saltada')
             : skipped
-                ? context.tr('আজ খাব না', 'Skipped')
-                // Joined rather than interpolated: a medicine added by name has no strength yet,
-                // and the old form left an orphan "· tablet" hanging off nothing.
-                : [med.strength, med.form].where((s) => s.trim().isNotEmpty).join(' · ');
+                ? context.tr('$when · আজ খাব না', '$when · skipped', hi: '$when · छोड़ी गई', es: '$when · omitida')
+                : [when, amount].where((s) => s.trim().isNotEmpty).join(' · ');
 
     return Material(
       color: colors.card,
@@ -726,16 +788,20 @@ class DoseCard extends StatelessWidget {
                         Text(
                           context.tr(
                             'ঘরে আর ${context.num(lowCount)}টি আছে',
-                            '$lowCount left at home',
+                            '$lowCount left at home', hi: 'घर में $lowCount बची', es: 'quedan $lowCount en casa',
                           ),
                           style: context.type.meta.copyWith(color: colors.warmD),
                         ),
                     ],
                   ),
                 ),
-                Semantics(
-                  label: context.tr('ওষুধের বিস্তারিত খুলুন', 'Open medicine details'),
-                  child: Icon(Icons.keyboard_arrow_right, size: 22, color: colors.ink3),
+                _ConfirmCircle(
+                  status: dwm.dose.status,
+                  highRisk: med.highRisk,
+                  medicineName: med.displayName,
+                  onTaken: onTaken,
+                  onUndo: onUndo,
+                  onMissed: () => _missedActions(context),
                 ),
               ],
             ),
@@ -851,10 +917,11 @@ class _SquareAction extends StatelessWidget {
 }
 
 class _DayComplete extends StatelessWidget {
-  const _DayComplete({required this.taken, required this.skipped});
+  const _DayComplete({required this.taken, required this.skipped, required this.streak});
 
   final int taken;
   final int skipped;
+  final int streak;
 
   @override
   Widget build(BuildContext context) {
@@ -870,14 +937,22 @@ class _DayComplete extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: colors.calmD,
-                  borderRadius: BorderRadius.circular(18),
+              // Springs in once, when the last dose of the day is confirmed. The only moment in
+              // the app that is allowed to celebrate — everywhere else, motion stays out of the way.
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 620),
+                curve: Curves.elasticOut,
+                builder: (context, t, child) => Transform.scale(scale: 0.6 + 0.4 * t, child: child),
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: colors.calmD,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Icon(Icons.check, size: 38, color: colors.paper),
                 ),
-                child: Icon(Icons.check, size: 38, color: colors.paper),
               ),
               const SizedBox(height: 14),
               Text(
@@ -886,14 +961,18 @@ class _DayComplete extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               Text(
-                context.tr('${context.num(taken)}টি ডোজ নেওয়া হয়েছে', '$taken doses taken'),
+                context.tr('${context.num(taken)}টি ডোজ নেওয়া হয়েছে', '$taken doses taken', hi: '$taken खुराक ली गईं', es: '$taken dosis tomadas'),
                 style: context.type.body.copyWith(color: colors.paper.withValues(alpha: 0.9)),
               ),
+              if (streak >= 2) ...[
+                const SizedBox(height: 12),
+                StreakChip(days: streak, onDark: true),
+              ],
               if (skipped > 0)
                 Text(
                   context.tr(
                     '${context.num(skipped)}টি ডোজ বাদ দেওয়া হয়েছে',
-                    '$skipped doses skipped',
+                    '$skipped doses skipped', hi: '$skipped खुराक छोड़ी गईं', es: '$skipped dosis omitidas',
                   ),
                   style: context.type.meta.copyWith(color: colors.paper.withValues(alpha: 0.8)),
                 ),
@@ -962,6 +1041,264 @@ class _EmptyHome extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The next dose still waiting, and the one control that answers it.
+///
+/// This replaces the old progress panel, which restated a count the list below already showed while
+/// the thing a patient actually needed — a way to record the dose — was unavailable until the block
+/// time had passed. The count survives as a quiet line at the foot.
+class _NextDoseCard extends StatelessWidget {
+  const _NextDoseCard({
+    required this.next,
+    required this.now,
+    required this.taken,
+    required this.total,
+    required this.onTaken,
+    required this.onSnooze,
+  });
+
+  final DoseWithMedicine next;
+  final TimeOfDay now;
+  final int taken;
+  final int total;
+  final VoidCallback onTaken;
+  final VoidCallback onSnooze;
+
+  /// "৪৫ মিনিট পরে" / "১ ঘণ্টা ১৫ মিনিট পরে", or "এখন সময়" once the dose is due.
+  String _lede(BuildContext context) {
+    final minutes =
+        (next.dose.hour * 60 + next.dose.minute) - (now.hour * 60 + now.minute);
+    if (minutes <= 0) return context.tr('এখন সময়', 'Due now');
+    final h = minutes ~/ 60, m = minutes % 60;
+    final within = h == 0
+        ? context.tr('${context.num(m)} মিনিট', '$m min', hi: '$m मिनट', es: '$m min')
+        : m == 0
+            ? context.tr('${context.num(h)} ঘণ্টা', '$h hr', hi: '$h घंटे', es: '$h h')
+            : context.tr(
+                '${context.num(h)} ঘণ্টা ${context.num(m)} মিনিট',
+                '$h hr $m min', hi: '$h घंटे $m मिनट', es: '$h h $m min',
+              );
+    return context.tr('পরবর্তী ডোজ · $within পরে', 'Next dose · in $within', hi: 'अगली खुराक · $within में', es: 'Próxima dosis · en $within');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final med = next.medicine;
+    final food = switch (med.foodRelation) {
+      FoodRelation.before => context.tr('খাবারের আগে', 'before food'),
+      FoodRelation.after => context.tr('খাবারের পরে', 'after food'),
+      FoodRelation.none => '',
+    };
+    final amount =
+        [ '${context.qty(med.dosePerIntake)} ${med.form}'.trim(), food]
+            .where((s) => s.isNotEmpty)
+            .join(' · ');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.calm,
+        borderRadius: BorderRadius.circular(Dimens.radiusLargeCard),
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            _lede(context),
+            style: context.type.meta.copyWith(color: colors.calmSoft),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            context.clock(next.dose.hour, next.dose.minute),
+            style: context.type.titleHero.copyWith(color: colors.paper),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              // On this dark fill the stored mark colour loses contrast, so it lightens — the same
+              // substitution the alarm screen makes.
+              MedicineMark(shape: med.mark, color: colors.markCalmOnDark, size: 34),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      med.displayName,
+                      style: context.type.cardTitlePrimary.copyWith(color: colors.paper),
+                    ),
+                    if (amount.isNotEmpty)
+                      Text(
+                        amount,
+                        style: context.type.meta.copyWith(color: colors.calmSoft),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (med.highRisk)
+            HoldToConfirmButton(
+              onConfirm: onTaken,
+              height: Dimens.doseConfirm,
+              container: colors.paper,
+              content: colors.calm,
+              progress: colors.markCalmOnDark,
+            )
+          else
+            PrimaryButton(
+              text: context.tr('এখনই খেয়েছি', "I've taken it"),
+              onPressed: onTaken,
+              height: Dimens.doseConfirm,
+              container: colors.paper,
+              content: colors.calm,
+            ),
+          TextButton(
+            onPressed: onSnooze,
+            style: TextButton.styleFrom(minimumSize: const Size.fromHeight(Dimens.tapMin)),
+            child: Text(
+              context.tr('পরে মনে করাও', 'Remind me later'),
+              style: context.type.cardTitleSecondary.copyWith(color: colors.calmSoft),
+            ),
+          ),
+          Text(
+            context.tr(
+              '${context.num(total)}টির মধ্যে ${context.num(taken)}টি ডোজ নেওয়া হয়েছে',
+              '$taken of $total doses taken', hi: '$total में से $taken खुराक ली गईं', es: '$taken de $total dosis tomadas',
+            ),
+            style: context.type.meta.copyWith(color: colors.calmSoft),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The per-row control that records a dose. Tapping the row still opens the medicine; this is the
+/// one thing on the row that changes the record.
+class _ConfirmCircle extends StatelessWidget {
+  const _ConfirmCircle({
+    required this.status,
+    required this.highRisk,
+    required this.medicineName,
+    required this.onTaken,
+    required this.onUndo,
+    required this.onMissed,
+  });
+
+  final DoseStatus status;
+  final bool highRisk;
+  final String medicineName;
+  final VoidCallback onTaken;
+  final VoidCallback onUndo;
+  final VoidCallback onMissed;
+
+  /// A high-risk medicine keeps its press-and-hold gate — it just moves into a sheet, because a
+  /// 44px circle is too small to hold accurately.
+  Future<void> _confirmHighRisk(BuildContext context) async {
+    final colors = context.colors;
+    await showNbSheet<void>(context, (sheetContext) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            medicineName,
+            style: sheetContext.type.cardTitlePrimary.copyWith(color: colors.ink),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            sheetContext.tr(
+              'এই ওষুধটি নিশ্চিত করতে বোতামটি চেপে ধরে রাখুন।',
+              'Press and hold to confirm this medicine.',
+            ),
+            style: sheetContext.type.body.copyWith(color: colors.ink2),
+          ),
+          const SizedBox(height: 16),
+          HoldToConfirmButton(
+            height: Dimens.flowButton,
+            onConfirm: () {
+              Navigator.of(sheetContext).pop();
+              onTaken();
+            },
+          ),
+        ],
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final taken = status.isTaken;
+
+    final (bg, border, icon, iconColor, label) = switch (status) {
+      DoseStatus.taken || DoseStatus.takenLate => (
+          colors.calm,
+          colors.calm,
+          Icons.check,
+          colors.paper,
+          context.tr('ফিরিয়ে নিন', 'Undo'),
+        ),
+      DoseStatus.missed => (
+          Colors.transparent,
+          colors.warm,
+          Icons.priority_high,
+          colors.warmD,
+          context.tr('কী হয়েছিল জানান', 'Say what happened'),
+        ),
+      DoseStatus.skipped => (
+          colors.sage,
+          colors.sage,
+          Icons.remove,
+          colors.ink2,
+          context.tr('কী হয়েছিল জানান', 'Say what happened'),
+        ),
+      DoseStatus.upcoming => (
+          Colors.transparent,
+          colors.calm,
+          Icons.check,
+          colors.calm,
+          context.tr('খেয়েছি', 'Mark as taken'),
+        ),
+    };
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          if (taken) {
+            onUndo();
+          } else if (status == DoseStatus.missed || status == DoseStatus.skipped) {
+            onMissed();
+          } else if (highRisk) {
+            _confirmHighRisk(context);
+          } else {
+            onTaken();
+          }
+        },
+        child: Padding(
+          // Keeps the visible circle at 34px while the tap target stays at the 48px minimum.
+          padding: const EdgeInsets.all(7),
+          child: Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: bg,
+              shape: BoxShape.circle,
+              border: Border.all(color: border, width: 2),
+            ),
+            child: Icon(icon, size: 20, color: iconColor),
+          ),
+        ),
+      ),
     );
   }
 }

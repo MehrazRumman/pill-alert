@@ -1,8 +1,12 @@
+import '../i18n/app_locale.dart';
+
 /// ভাষা — locale preference. `system` follows the device locale (the default).
 enum LocalePref {
   system('SYSTEM'),
   bn('BN'),
-  en('EN');
+  en('EN'),
+  hi('HI'),
+  es('ES');
 
   const LocalePref(this.stored);
   final String stored;
@@ -55,12 +59,19 @@ class AppSettings {
   final bool notificationPrimingShown;
   final String inboxReadSignature;
 
-  /// Resolves the effective Bangla flag given the device's Bangla state.
-  bool isBangla(bool deviceIsBangla) => switch (localePref) {
-        LocalePref.bn => true,
-        LocalePref.en => false,
-        LocalePref.system => deviceIsBangla,
+  /// Resolves the language the app is actually read in. `system` follows the device when it speaks
+  /// one of the four, and falls back to English when it does not.
+  AppLocale resolve(String deviceLanguageCode) => switch (localePref) {
+        LocalePref.bn => AppLocale.bn,
+        LocalePref.en => AppLocale.en,
+        LocalePref.hi => AppLocale.hi,
+        LocalePref.es => AppLocale.es,
+        LocalePref.system => AppLocale.fromDeviceCode(deviceLanguageCode),
       };
+
+  /// Kept for the notification and alarm layers, which only ever needed the Bangla question:
+  /// Bengali numerals and the "সকাল/দুপুর/রাত" period words.
+  bool isBangla(String deviceLanguageCode) => resolve(deviceLanguageCode).isBangla;
 
   /// Resolves the effective 24-hour flag. BN defaults to 12h, EN to 24h.
   bool is24Hour(bool bangla) => switch (timeFormat) {

@@ -33,7 +33,7 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
 
   Future<void> _rearm() => AlarmScheduler.rescheduleAll(
         context.repo,
-        settings: AppSettingsView.from(context.settingsStore, context.isBangla),
+        settings: AppSettingsView.from(context.settingsStore, context.locale.code),
       );
 
   Future<void> _save(Medicine updated) async {
@@ -47,7 +47,7 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
       title: context.tr('ওষুধটি সরিয়ে দেবেন?', 'Remove this medicine?'),
       message: context.tr(
         '${med.displayName}-এর ভবিষ্যৎ অ্যালার্ম ও ডোজের ইতিহাস স্থায়ীভাবে মুছে যাবে।',
-        'Future alarms and dose history for ${med.displayName} will be permanently deleted.',
+        'Future alarms and dose history for ${med.displayName} will be permanently deleted.', hi: '${med.displayName} के आगे के अलार्म और खुराक का इतिहास हमेशा के लिए मिट जाएगा।', es: 'Las alarmas futuras y el historial de dosis de ${med.displayName} se borrarán de forma permanente.',
       ),
       confirmLabel: context.tr('সরিয়ে দিন', 'Remove'),
       cancelLabel: context.tr('রেখে দিন', 'Keep it'),
@@ -107,7 +107,7 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
   Future<void> _edit(Medicine med) async {
     final updated = await showDialog<Medicine>(
       context: context,
-      barrierColor: const Color(0x6B1B2A26),
+      barrierColor: nbColors.ink.withValues(alpha: 0.42),
       builder: (context) => _EditMedicineDialog(medicine: med),
     );
     if (updated != null && mounted) await _save(updated);
@@ -196,7 +196,7 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                                         Text(
                                           context.tr(
                                             'প্রতিবার ${context.qty(med.dosePerIntake)} ${med.form}',
-                                            '${context.qty(med.dosePerIntake)} ${med.form} each time',
+                                            '${context.qty(med.dosePerIntake)} ${med.form} each time', hi: 'हर बार ${context.qty(med.dosePerIntake)} ${med.form}', es: '${context.qty(med.dosePerIntake)} ${med.form} cada vez',
                                           ),
                                           style: context.type.meta
                                               .copyWith(color: colors.calmD),
@@ -404,7 +404,7 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                               Text(
                                 context.tr(
                                   'গত ৩০ দিনে ${context.percent(adherence?.percent ?? 0)} সময়মতো নেওয়া হয়েছে',
-                                  '${context.percent(adherence?.percent ?? 0)} on time over 30 days',
+                                  '${context.percent(adherence?.percent ?? 0)} on time over 30 days', hi: '30 दिनों में ${context.percent(adherence?.percent ?? 0)} समय पर', es: '${context.percent(adherence?.percent ?? 0)} a tiempo en 30 días',
                                 ),
                                 style: context.type.meta.copyWith(color: colors.ink2),
                               ),

@@ -27,6 +27,7 @@ class Routes {
   static const doctorReport = '/doctor_report'; // 6c
   static const settings = '/settings'; // 2l/2i
   static const help = '/help';
+  static const profile = '/profile'; // Your details — the patient's own record
   static const medicineDetail = '/medicine'; // 5e — argument is the medicine id
 
   // Add-medicine flow (3a → …)

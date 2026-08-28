@@ -177,7 +177,7 @@ class _MedicineRow extends StatelessWidget {
             StatusPill(
               text: context.tr(
                 '${context.num(stock!.count)}টি বাকি',
-                '${stock!.count} left',
+                '${stock!.count} left', hi: '${stock!.count} बची', es: 'quedan ${stock!.count}',
               ),
               background: colors.warmSoft,
               contentColor: colors.warmD,
@@ -195,18 +195,17 @@ class _MedicineRow extends StatelessWidget {
 
 /// Words, not clock times — e.g. "প্রতিদিন · সকাল, দুপুর, রাত".
 String scheduleSummary(BuildContext context, Medicine med) {
-  final bangla = context.isBangla;
   final frequency = switch (med.frequency) {
-    Frequency.daily => bangla ? 'প্রতিদিন' : 'Daily',
-    Frequency.alternate => bangla ? 'একদিন পরপর' : 'Every other day',
-    Frequency.weekdays => bangla ? 'সপ্তাহের কর্মদিবসে' : 'On weekdays',
-    Frequency.weekly => bangla ? 'নির্বাচিত দিনে' : 'On selected days',
+    Frequency.daily => context.tr('প্রতিদিন', 'Daily'),
+    Frequency.alternate => context.tr('একদিন পরপর', 'Every other day'),
+    Frequency.weekdays => context.tr('সপ্তাহের কর্মদিবসে', 'On weekdays'),
+    Frequency.weekly => context.tr('নির্বাচিত দিনে', 'On selected days'),
   };
   final times = med.timeTokens.map((t) {
     return switch (TimeBlock.fromToken(t)) {
-      TimeBlock.morning => bangla ? 'সকাল' : 'morning',
-      TimeBlock.noon => bangla ? 'দুপুর' : 'afternoon',
-      TimeBlock.night => bangla ? 'রাত' : 'night',
+      TimeBlock.morning => context.tr('সকাল', 'morning'),
+      TimeBlock.noon => context.tr('দুপুর', 'afternoon'),
+      TimeBlock.night => context.tr('রাত', 'night'),
     };
   }).join(', ');
   return '$frequency · $times';

@@ -44,6 +44,7 @@ class NavActions {
   Future<void> openDoctorReport() => _push(Routes.doctorReport);
   Future<void> openSettings() => _push(Routes.settings);
   Future<void> openHelp() => _push(Routes.help);
+  Future<void> openProfile() => _push(Routes.profile);
   Future<void> openAlarmPreview() => _push(Routes.alarmPreview);
   Future<void> openPermissionPriming() => _push(Routes.permissionPriming);
   Future<void> openAlarm(int doseId) => _push(Routes.alarmFullScreen, args: doseId);

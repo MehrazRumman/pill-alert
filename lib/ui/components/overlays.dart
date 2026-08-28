@@ -51,7 +51,7 @@ class SheetSurface extends StatelessWidget {
 Future<T?> showNbSheet<T>(BuildContext context, WidgetBuilder builder) => showModalBottomSheet<T>(
       context: context,
       backgroundColor: Colors.transparent,
-      barrierColor: const Color(0x6B1B2A26), // rgba(27,42,38,0.42)
+      barrierColor: nbColors.ink.withValues(alpha: 0.42), // rgba(27,42,38,0.42)
       isScrollControlled: true,
       builder: (context) => SheetSurface(child: builder(context)),
     );
@@ -173,7 +173,7 @@ Future<bool> confirmAction(
   final colors = context.colors;
   final result = await showDialog<bool>(
     context: context,
-    barrierColor: const Color(0x6B1B2A26),
+    barrierColor: nbColors.ink.withValues(alpha: 0.42),
     builder: (context) => _DialogShell(
       children: [
         Text(title, style: context.type.header.copyWith(color: colors.ink)),
@@ -210,11 +210,11 @@ Future<MissedDoseChoice?> showMissedDoseDialog(
   final colors = context.colors;
   return showDialog<MissedDoseChoice>(
     context: context,
-    barrierColor: const Color(0x6B1B2A26),
+    barrierColor: nbColors.ink.withValues(alpha: 0.42),
     builder: (context) => _DialogShell(
       children: [
         Text(
-          context.tr('$medicineName আপডেট করবেন?', 'Update $medicineName?'),
+          context.tr('$medicineName আপডেট করবেন?', 'Update $medicineName?', hi: '$medicineName बदलें?', es: '¿Actualizar $medicineName?'),
           style: context.type.header.copyWith(color: colors.ink),
         ),
         const SizedBox(height: 8),
