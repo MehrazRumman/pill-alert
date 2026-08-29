@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Both of these are resolved only at runtime, by name, from Dart:
+     `getIdentifier("ic_stat_nirbhor", "drawable", package)` for the notification small icon, and
+     the same lookup in "raw" for the reminder tone behind RawResourceAndroidNotificationSound.
+     Neither name appears in the manifest, in XML or in any dex string, so the release build's
+     resource shrinker sees them as unreachable and drops them. That made the release APK hang on
+     the launch screen: plugin.initialize threw invalid_icon, the throw was uncaught in main(),
+     and runApp() was never reached. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_nirbhor,@raw/alarm_tone" />

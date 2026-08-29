@@ -25,14 +25,22 @@ Future<void> main() async {
   final container = AppContainer(repository: repository, settings: settings);
 
   int? launchDoseId;
-  await NirbhorNotifications.init(
-    onTap: _onNotificationResponse,
-    onBackgroundTap: onBackgroundNotificationAction,
-  );
+  try {
+    await NirbhorNotifications.init(
+      onTap: _onNotificationResponse,
+      onBackgroundTap: onBackgroundNotificationAction,
+    );
 
-  final launch = await NirbhorNotifications.plugin.getNotificationAppLaunchDetails();
-  if (launch?.didNotificationLaunchApp ?? false) {
-    launchDoseId = AlarmScheduler.doseIdFromPayload(launch!.notificationResponse?.payload);
+    final launch = await NirbhorNotifications.plugin.getNotificationAppLaunchDetails();
+    if (launch?.didNotificationLaunchApp ?? false) {
+      launchDoseId = AlarmScheduler.doseIdFromPayload(launch!.notificationResponse?.payload);
+    }
+  } catch (error, stack) {
+    // Nothing set up here is worth a blank screen. An uncaught throw before runApp leaves the
+    // process sitting on the launch theme with no Flutter tree and no crash dialog — which is
+    // exactly how a resource-shrunk ic_stat_nirbhor bricked a release build. Reminders degrade,
+    // the app still opens.
+    debugPrint('Notification init failed; continuing without it: $error\n$stack');
   }
 
   runApp(NirbhorAppRoot(container: container, launchDoseId: launchDoseId));

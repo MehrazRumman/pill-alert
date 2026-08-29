@@ -57,7 +57,6 @@ class NirbhorNotifications {
     void Function(NotificationResponse response)? onBackgroundTap,
   }) async {
     if (_ready) return;
-    _ready = true;
 
     tzdata.initializeTimeZones();
     try {
@@ -88,6 +87,8 @@ class NirbhorNotifications {
     );
 
     await createChannels();
+    // Only on the way out: a throw above must not latch a half-initialised plugin as ready.
+    _ready = true;
   }
 
   static Future<void> createChannels() async {
