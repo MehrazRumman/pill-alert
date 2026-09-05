@@ -40,12 +40,13 @@ Future<void> handleNotificationAction(NotificationResponse response) async {
       final repo = await NirbhorRepository.get();
       await repo.snoozeDose(doseId);
       await AlarmScheduler.clearForDose(doseId);
-      // The dose now sits at a new time, so its alarm has to be laid down again.
+      // The dose now sits at a new time, so its alarm has to be laid down again. Only this dose:
+      // nothing else moved, and rewriting the whole fortnight from a headless engine (whose
+      // locale reads as `und`) is how every reminder used to come back in English.
+      final dwm = await repo.doseWithMedicine(doseId);
+      if (dwm == null) return;
       final store = await SettingsStore.load();
       final code = ui.PlatformDispatcher.instance.locale.languageCode;
-      await AlarmScheduler.rescheduleAll(
-        repo,
-        settings: AppSettingsView.from(store, code),
-      );
+      await AlarmScheduler.scheduleDose(dwm, settings: AppSettingsView.from(store, code));
   }
 }

@@ -30,6 +30,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kOnboarding = 'onboarding_complete';
   static const _kPriming = 'priming_shown';
   static const _kInboxReadSignature = 'inbox_read_signature';
+  static const _kDeviceLanguage = 'device_language';
 
   // Patient profile.
   static const _kName = 'profile_name';
@@ -57,6 +58,7 @@ class SettingsStore extends ChangeNotifier {
         onboardingComplete: p.getBool(_kOnboarding) ?? false,
         notificationPrimingShown: p.getBool(_kPriming) ?? false,
         inboxReadSignature: p.getString(_kInboxReadSignature) ?? '',
+        deviceLanguage: p.getString(_kDeviceLanguage) ?? '',
       );
 
   static PatientProfile _readProfile(SharedPreferences p) => PatientProfile(
@@ -118,4 +120,11 @@ class SettingsStore extends ChangeNotifier {
   Future<void> setPrimingShown(bool v) => _commit(() => _prefs.setBool(_kPriming, v));
   Future<void> setInboxReadSignature(String v) =>
       _commit(() => _prefs.setString(_kInboxReadSignature, v));
+
+  /// Records the device language the foreground app resolved against; see
+  /// [AppSettings.deviceLanguage]. Silent when unchanged so it can be called on every launch.
+  Future<void> rememberDeviceLanguage(String code) async {
+    if (code.isEmpty || code == 'und' || code == _value.deviceLanguage) return;
+    await _commit(() => _prefs.setString(_kDeviceLanguage, code));
+  }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../data/app_scope.dart';
 import '../../domain/patient_profile.dart';
+import '../../i18n/numerals.dart';
 import '../../navigation/nav_actions.dart';
 import '../../theme/theme.dart';
 import '../components/buttons.dart';
@@ -40,7 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loaded = true;
     final p = AppScope.of(context).settings.profile;
     _name.text = p.name;
-    _birthYear.text = p.yearOfBirth?.toString() ?? '';
+    _birthYear.text = p.yearOfBirth == null ? '' : context.num(p.yearOfBirth!);
     _allergies.text = p.allergies;
     _conditions.text = p.conditions;
     _emergencyName.text = p.emergencyName;
@@ -66,7 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _save() async {
     // A year outside living memory is far more likely to be a typo than a real birth year, so it is
     // dropped rather than stored and shown back as a nonsense age.
-    final year = int.tryParse(_birthYear.text.trim());
+    final year = int.tryParse(Numerals.toAscii(_birthYear.text.trim()));
     final now = DateTime.now();
     final validYear = (year != null && year >= now.year - 129 && year <= now.year) ? year : null;
 
@@ -331,7 +332,8 @@ class _Field extends StatelessWidget {
       maxLines: maxLines,
       inputFormatters: [
         LengthLimitingTextInputFormatter(maxLength),
-        if (digitsOnly) FilteringTextInputFormatter.digitsOnly,
+        // ASCII or Bengali digits: a Bangla keyboard types ০-৯, and digitsOnly would drop them.
+        if (digitsOnly) FilteringTextInputFormatter.allow(RegExp('[0-9\u09E6-\u09EF]')),
       ],
       onChanged: (_) => onChanged?.call(),
       style: context.type.body.copyWith(color: colors.ink),

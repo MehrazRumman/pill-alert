@@ -23,6 +23,21 @@ class Numerals {
 
   static String number(int value, bool bangla) => digits(value.toString(), bangla);
 
+  /// The inverse of [digits]: Bengali numerals typed on a Bangla keyboard become ASCII so the value
+  /// can be parsed. Other characters pass through unchanged.
+  static String toAscii(String text) {
+    final sb = StringBuffer();
+    for (final rune in text.runes) {
+      final i = rune - 0x09E6; // U+09E6 is Bengali zero
+      if (i >= 0 && i <= 9) {
+        sb.write(i);
+      } else {
+        sb.writeCharCode(rune);
+      }
+    }
+    return sb.toString();
+  }
+
   /// Formats whole and half quantities without truncating values such as 1.5 to 1.
   static String quantity(double value, bool bangla) {
     final roundedHalf = (value * 2).round() / 2;
@@ -49,6 +64,7 @@ class Numerals {
   static String time(int hour, int minute, bool bangla, bool is24) {
     final mm = minute.toString().padLeft(2, '0');
     if (bangla) {
+      if (is24) return digits('${hour.toString().padLeft(2, '0')}:$mm', true);
       final period = banglaPeriod(hour);
       final h12 = ((hour + 11) % 12) + 1;
       return '$period ${digits('$h12:$mm', true)}';

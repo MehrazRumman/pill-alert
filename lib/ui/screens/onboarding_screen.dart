@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/app_scope.dart';
 import '../../domain/app_settings.dart';
+import '../../i18n/app_locale.dart';
 import '../../navigation/nav_actions.dart';
 import '../../theme/theme.dart';
 
@@ -62,7 +63,11 @@ class OnboardingScreen extends StatelessWidget {
                 ),
                 style: context.type.titleHero.copyWith(
                   fontSize: 40,
-                  height: context.isBangla ? kBanglaMinLine : 1.2,
+                  height: switch (context.locale.script) {
+                    NbScript.bengali => kBanglaMinLine,
+                    NbScript.devanagari => kDevanagariMinLine,
+                    NbScript.latin => 1.2,
+                  },
                   color: colors.paper,
                 ),
               ),
@@ -152,7 +157,7 @@ class OnboardingScreen extends StatelessWidget {
                   const SizedBox(width: 10),
                   _LangPill(
                     label: 'English',
-                    selected: !context.isBangla,
+                    selected: context.locale == AppLocale.en,
                     bangla: false,
                     onTap: () => store.setLocale(LocalePref.en),
                   ),

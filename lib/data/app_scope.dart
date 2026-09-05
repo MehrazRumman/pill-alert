@@ -55,6 +55,7 @@ class RepoBuilder<T> extends StatefulWidget {
 class _RepoBuilderState<T> extends State<RepoBuilder<T>> {
   NirbhorRepository? _repo;
   T? _data;
+  bool _hasData = false;
   int _generation = 0;
 
   @override
@@ -86,13 +87,17 @@ class _RepoBuilderState<T> extends State<RepoBuilder<T>> {
     final result = await widget.query(repo);
     // A later query already answered — dropping this one keeps the newest write on screen.
     if (!mounted || generation != _generation) return;
-    setState(() => _data = result);
+    setState(() {
+      _data = result;
+      _hasData = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final data = _data;
-    if (data == null) return widget.loading ?? const SizedBox.shrink();
-    return widget.builder(context, data);
+    // Tracked separately from the value: a query of type `T?` legitimately answers null (no
+    // caregiver yet), and that answer must reach the builder rather than read as still loading.
+    if (!_hasData) return widget.loading ?? const SizedBox.shrink();
+    return widget.builder(context, _data as T);
   }
 }

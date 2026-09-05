@@ -15,8 +15,9 @@ class MissedDoseNotifier {
   static Future<List<DoseWithMedicine>> sweep(NirbhorRepository repo) async {
     final newlyMissed = await repo.markOverdueDoses();
     if (newlyMissed.isEmpty) return const [];
-    // A missed dose is no longer answerable from its reminder, and that reminder is ongoing.
-    await AlarmScheduler.clearForDoses(newlyMissed.map((d) => d.dose.id));
+    // A missed dose is no longer answerable from its reminder, and that reminder is ongoing. The
+    // missed-dose notice armed a minute later stays: it is how the patient learns a dose went by.
+    await AlarmScheduler.clearForDoses(newlyMissed.map((d) => d.dose.id), keepMissedNotice: true);
     return newlyMissed;
   }
 }

@@ -45,6 +45,7 @@ class AppSettings {
     this.onboardingComplete = false,
     this.notificationPrimingShown = false,
     this.inboxReadSignature = '',
+    this.deviceLanguage = '',
   });
 
   final LocalePref localePref;
@@ -58,6 +59,11 @@ class AppSettings {
   final bool onboardingComplete;
   final bool notificationPrimingShown;
   final String inboxReadSignature;
+
+  /// The device language as last seen by the running app. The plugin's headless engine (shade
+  /// actions with the app dead) reports its locale as `und`, and resolving that would rewrite
+  /// every reminder in English; this is the fallback it resolves against instead.
+  final String deviceLanguage;
 
   /// Resolves the language the app is actually read in. `system` follows the device when it speaks
   /// one of the four, and falls back to English when it does not.

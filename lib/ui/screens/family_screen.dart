@@ -187,11 +187,19 @@ class _FamilyScreenState extends State<FamilyScreen> {
                                     child: PrimaryButton(
                                       text: context.tr('কোড পাঠান', 'Send code'),
                                       height: 52,
-                                      onPressed: () {
-                                        final message = context.isBangla
-                                            ? 'নির্ভরে যুক্ত হতে এই কোডটি দিন: $_inviteCode'
-                                            : 'Use this code to connect in Nirbhor: $_inviteCode';
-                                        SharePlus.instance.share(ShareParams(text: message));
+                                      onPressed: () async {
+                                        final message = context.tr(
+                                          'নির্ভরে যুক্ত হতে এই কোডটি দিন: $_inviteCode',
+                                          'Use this code to connect in Nirbhor: $_inviteCode',
+                                          hi: 'निर्भर में जुड़ने के लिए यह कोड दें: $_inviteCode',
+                                          es: 'Use este código para conectarse en Nirbhor: $_inviteCode',
+                                        );
+                                        try {
+                                          await SharePlus.instance
+                                              .share(ShareParams(text: message));
+                                        } catch (_) {
+                                          // No share target on this device; the code is still on screen to copy.
+                                        }
                                       },
                                     ),
                                   ),

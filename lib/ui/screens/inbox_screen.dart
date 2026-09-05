@@ -14,10 +14,14 @@ String inboxSignature(List<Medicine> medicines, List<StockStatus> stock) {
   return ids.join('|');
 }
 
-/// Whether the inbox holds anything the patient has not yet marked read.
+/// Whether the inbox holds anything the patient has not yet marked read: an item is unread when
+/// its id is not in the signature saved by "mark all read". An item that *disappears* (a refill
+/// cleared its warning) must not light the dot, so the comparison is per item, not whole-string.
 bool hasUnreadInbox(List<Medicine> medicines, List<StockStatus> stock, String readSignature) {
-  final signature = inboxSignature(medicines, stock);
-  return signature.isNotEmpty && signature != readSignature;
+  final read = readSignature.split('|').toSet();
+  return inboxSignature(medicines, stock)
+      .split('|')
+      .any((id) => id.isNotEmpty && !read.contains(id));
 }
 
 class _InboxItem {
@@ -72,8 +76,8 @@ class InboxScreen extends StatelessWidget {
             const earlier = <_InboxItem>[];
 
             final signature = inboxSignature(meds, stock);
-            final allRead =
-                signature.isNotEmpty && settingsStore.value.inboxReadSignature == signature;
+            final allRead = signature.isNotEmpty &&
+                !hasUnreadInbox(meds, stock, settingsStore.value.inboxReadSignature);
             final canMarkRead = signature.isNotEmpty && !allRead;
 
             return Column(

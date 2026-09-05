@@ -340,9 +340,14 @@ class _EmergencyCallRow extends StatelessWidget {
     final uri = Uri(scheme: 'tel', path: profile.emergencyPhone.trim());
     final messenger = ScaffoldMessenger.maybeOf(context);
     final failed = context.tr('ফোন অ্যাপ খোলা গেল না।', "Couldn't open the phone app.");
-    if (!await launchUrl(uri)) {
-      messenger?.showSnackBar(SnackBar(content: Text(failed)));
+    // A device without a dialer (a tablet) throws here rather than returning false.
+    bool launched;
+    try {
+      launched = await launchUrl(uri);
+    } catch (_) {
+      launched = false;
     }
+    if (!launched) messenger?.showSnackBar(SnackBar(content: Text(failed)));
   }
 
   @override
@@ -378,8 +383,10 @@ class _EmergencyCallRow extends StatelessWidget {
                         context.type.isBangla
                             ? context.numStr(profile.emergencyPhone)
                             : profile.emergencyPhone,
-                        style: context.type
-                            .asLatin(context.type.meta)
+                        // Bengali digits need the Bengali face; Archivo has none.
+                        style: (context.type.isBangla
+                                ? context.type.meta
+                                : context.type.asLatin(context.type.meta))
                             .copyWith(color: colors.ink3),
                       ),
                     ],

@@ -1,8 +1,15 @@
+import 'dart:math' as math;
+
 import 'models.dart';
 
 /// Shared stock math so add, cabinet, refill, and alerts cannot disagree.
 class StockCalculator {
   StockCalculator._();
+
+  /// Units removed from stock by one intake. `stockCount` is an integer column shared with the
+  /// Kotlin schema, so a half tablet costs a whole unit; the days estimate below uses the same
+  /// number so the cabinet never promises more days than the count can actually deliver.
+  static int unitsPerIntake(double dosePerIntake) => math.max(1, dosePerIntake.ceil());
 
   static int? estimatedDaysFrom({
     required int stockCount,
@@ -19,7 +26,8 @@ class StockCalculator {
       Frequency.weekdays || Frequency.weekly => _bitCount(weekdaysMask & 0x7F).toDouble(),
     };
     if (scheduledDaysPerWeek <= 0) return null;
-    final averagePerDay = dosePerIntake * timesPerScheduledDay * scheduledDaysPerWeek / 7;
+    final averagePerDay =
+        unitsPerIntake(dosePerIntake) * timesPerScheduledDay * scheduledDaysPerWeek / 7;
     return ((stockCount < 0 ? 0 : stockCount) / averagePerDay).floor();
   }
 

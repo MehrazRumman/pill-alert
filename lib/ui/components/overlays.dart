@@ -206,6 +206,7 @@ enum MissedDoseChoice { taken, skip, details }
 Future<MissedDoseChoice?> showMissedDoseDialog(
   BuildContext context, {
   required String medicineName,
+  bool skipped = false,
 }) {
   final colors = context.colors;
   return showDialog<MissedDoseChoice>(
@@ -219,10 +220,15 @@ Future<MissedDoseChoice?> showMissedDoseDialog(
         ),
         const SizedBox(height: 8),
         Text(
-          context.tr(
-            'এই ডোজটি বাদ পড়েছে হিসেবে দেখানো হয়েছে। আজকের হিসাব ঠিক রাখতে কী হয়েছিল তা বেছে নিন।',
-            "This dose was marked missed. Choose what happened so today's count stays accurate.",
-          ),
+          skipped
+              ? context.tr(
+                  'এই ডোজটি বাদ দেওয়া হয়েছে। খেয়ে থাকলে আজকের হিসাব ঠিক রাখতে জানান।',
+                  "This dose was skipped. If you did take it, say so to keep today's count accurate.",
+                )
+              : context.tr(
+                  'এই ডোজটি বাদ পড়েছে হিসেবে দেখানো হয়েছে। আজকের হিসাব ঠিক রাখতে কী হয়েছিল তা বেছে নিন।',
+                  "This dose was marked missed. Choose what happened so today's count stays accurate.",
+                ),
           style: context.type.body.copyWith(color: colors.ink2),
         ),
         const SizedBox(height: 22),
@@ -231,14 +237,17 @@ Future<MissedDoseChoice?> showMissedDoseDialog(
           onPressed: () => Navigator.of(context).pop(MissedDoseChoice.taken),
           height: 56,
         ),
-        const SizedBox(height: 8),
-        SecondaryButton(
-          text: context.tr('এই ডোজ বাদ দিন', 'Skip this dose'),
-          onPressed: () => Navigator.of(context).pop(MissedDoseChoice.skip),
-          height: 56,
-          borderColor: colors.warm,
-          content: colors.warmD,
-        ),
+        // Already skipped: offering "skip" again would be a no-op dressed as a choice.
+        if (!skipped) ...[
+          const SizedBox(height: 8),
+          SecondaryButton(
+            text: context.tr('এই ডোজ বাদ দিন', 'Skip this dose'),
+            onPressed: () => Navigator.of(context).pop(MissedDoseChoice.skip),
+            height: 56,
+            borderColor: colors.warm,
+            content: colors.warmD,
+          ),
+        ],
         const SizedBox(height: 6),
         SizedBox(
           width: double.infinity,

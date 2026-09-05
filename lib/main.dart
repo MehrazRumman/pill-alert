@@ -20,8 +20,18 @@ import 'notifications/notification_actions.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final repository = await NirbhorRepository.get();
-  final settings = await SettingsStore.load();
+  final NirbhorRepository repository;
+  final SettingsStore settings;
+  try {
+    repository = await NirbhorRepository.get();
+    settings = await SettingsStore.load();
+  } catch (error, stack) {
+    // A corrupt database or a full disk here would otherwise leave the process sitting on the
+    // launch theme forever — the same blank-screen failure described below, with nothing to read.
+    debugPrint('Storage failed to open: $error\n$stack');
+    runApp(const _StorageFailureApp());
+    return;
+  }
   final container = AppContainer(repository: repository, settings: settings);
 
   int? launchDoseId;
@@ -52,7 +62,7 @@ Future<void> main() async {
 Future<void> _armReminders(NirbhorRepository repo, SettingsStore settings) async {
   final today = dateOnly(DateTime.now());
   for (var i = 0; i <= 14; i++) {
-    await repo.ensureDosesFor(today.add(Duration(days: i)), notify: false);
+    await repo.ensureDosesFor(addDays(today, i), notify: false);
   }
   await MissedDoseNotifier.sweep(repo);
   await AlarmScheduler.rescheduleAll(
@@ -78,6 +88,30 @@ final ValueNotifier<int?> pendingAlarmDoseId = ValueNotifier<int?>(null);
 
 String deviceLanguageCode() =>
     ui.PlatformDispatcher.instance.locale.languageCode;
+
+/// Shown when local storage cannot be opened at all. Bilingual and font-free on purpose: the
+/// theme, locale and font machinery all sit behind the settings that failed to load.
+class _StorageFailureApp extends StatelessWidget {
+  const _StorageFailureApp();
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                'অ্যাপের তথ্য খোলা যাচ্ছে না। ফোন রিস্টার্ট করে আবার চেষ্টা করুন।\n\n'
+                "The app's data could not be opened. Restart the phone and try again.",
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 18, height: 1.6),
+              ),
+            ),
+          ),
+        ),
+      );
+}
 
 void unawaited(Future<void> future) {
   future.catchError((Object _) {

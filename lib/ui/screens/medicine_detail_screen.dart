@@ -37,7 +37,11 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
       );
 
   Future<void> _save(Medicine updated) async {
-    await context.repo.upsertMedicine(updated);
+    // A schedule edit drops the medicine's pending doses; one of them may be a reminder posted
+    // ongoing on the shade, and rescheduleAll only covers doses that still exist.
+    final removed = await context.repo.upsertMedicine(updated);
+    await AlarmScheduler.clearForDoses(removed);
+    if (!mounted) return;
     await _rearm();
   }
 
@@ -402,10 +406,16 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                context.tr(
-                                  'গত ৩০ দিনে ${context.percent(adherence?.percent ?? 0)} সময়মতো নেওয়া হয়েছে',
-                                  '${context.percent(adherence?.percent ?? 0)} on time over 30 days', hi: '30 दिनों में ${context.percent(adherence?.percent ?? 0)} समय पर', es: '${context.percent(adherence?.percent ?? 0)} a tiempo en 30 días',
-                                ),
+                                // A medicine with nothing counted yet is not at 0%.
+                                adherence == null || adherence.total == 0
+                                    ? context.tr(
+                                        'গত ৩০ দিনে এখনো কিছু গণনা হয়নি',
+                                        'Nothing counted yet over 30 days',
+                                      )
+                                    : context.tr(
+                                        'গত ৩০ দিনে ${context.percent(adherence.percent)} সময়মতো নেওয়া হয়েছে',
+                                        '${context.percent(adherence.percent)} on time over 30 days', hi: '30 दिनों में ${context.percent(adherence.percent)} समय पर', es: '${context.percent(adherence.percent)} a tiempo en 30 días',
+                                      ),
                                 style: context.type.meta.copyWith(color: colors.ink2),
                               ),
                             ],

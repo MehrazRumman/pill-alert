@@ -26,6 +26,12 @@ class AlarmScheduler {
 
   static const int _scheduleDays = 15;
 
+  /// Repeats and the missed-dose check are only armed this far ahead. AlarmManager allows 500
+  /// pending alarms per app; with every dose carrying `2 + repeatMax` of them, four medicines
+  /// three times a day for 15 days is 900, and everything past the cap is silently dropped — the
+  /// far reminders themselves included. The window rolls forward on every launch and resume.
+  static const int _repeatDays = 3;
+
   /// Notification ids are derived from the dose id so a dose's reminder and all of its repeats can
   /// be cancelled without storing anything. Slot 0 is the reminder itself, 1..repeatMax the
   /// repeats, and the last slot the missed-dose check.
@@ -150,11 +156,12 @@ class AlarmScheduler {
     }
   }
 
-  /// Arms one dose: the reminder, its repeats, and the missed-dose check.
+  /// Arms one dose: the reminder, and — when [withRepeats] — its repeats and the missed-dose check.
   static Future<void> scheduleDose(
     DoseWithMedicine item, {
     required AppSettingsView settings,
     AndroidScheduleMode? mode,
+    bool withRepeats = true,
   }) async {
     final scheduleMode = mode ?? await _mode();
     final dose = item.dose;
@@ -181,6 +188,8 @@ class AlarmScheduler {
       payload: payloadFor(dose.id),
       mode: scheduleMode,
     );
+
+    if (!withRepeats) return;
 
     for (var i = 1; i <= settings.repeatMax && i < _missCheckSlot; i++) {
       await _scheduleAt(
@@ -221,12 +230,13 @@ class AlarmScheduler {
   }) async {
     final today = dateOnly(DateTime.now());
     for (var offset = 0; offset < _scheduleDays; offset++) {
-      await repo.ensureDosesFor(today.add(Duration(days: offset)), notify: false);
+      await repo.ensureDosesFor(addDays(today, offset), notify: false);
     }
     final doses = await repo.upcomingDoses(within: const Duration(days: _scheduleDays));
     if (doses.isEmpty) return;
     final meds = {for (final m in await repo.medicines()) m.id: m};
     final mode = await _mode();
+    final repeatHorizon = addDays(today, _repeatDays).millisecondsSinceEpoch;
     for (final dose in doses) {
       final medicine = meds[dose.medicineId];
       if (medicine == null) continue;
@@ -234,6 +244,7 @@ class AlarmScheduler {
         DoseWithMedicine(dose, medicine),
         settings: settings,
         mode: mode,
+        withRepeats: dose.scheduledEpochMillis < repeatHorizon,
       );
     }
   }
@@ -241,8 +252,13 @@ class AlarmScheduler {
   /// Called once a dose stops being answerable — taken, skipped, snoozed to a new time, or its
   /// medicine removed. The reminder notification is posted `ongoing`, so nothing but this clears
   /// it: without it a dose confirmed from Home leaves an undismissable notification on the shade.
-  static Future<void> clearForDose(int doseId) async {
+  ///
+  /// [keepMissedNotice] leaves the missed-dose check in place. The sweep that flips a dose to
+  /// MISSED at +30 min uses it: that check, armed for +31, is the only thing that tells a patient
+  /// who never opened the shade that a dose went by, and the sweep runs in the background too.
+  static Future<void> clearForDose(int doseId, {bool keepMissedNotice = false}) async {
     for (var slot = 0; slot < _slots; slot++) {
+      if (keepMissedNotice && slot == _missCheckSlot) continue;
       try {
         await NirbhorNotifications.plugin.cancel(id: notificationId(doseId, slot));
       } catch (_) {
@@ -251,9 +267,9 @@ class AlarmScheduler {
     }
   }
 
-  static Future<void> clearForDoses(Iterable<int> doseIds) async {
+  static Future<void> clearForDoses(Iterable<int> doseIds, {bool keepMissedNotice = false}) async {
     for (final id in doseIds) {
-      await clearForDose(id);
+      await clearForDose(id, keepMissedNotice: keepMissedNotice);
     }
   }
 }
@@ -279,7 +295,11 @@ class AppSettingsView {
 
   factory AppSettingsView.from(SettingsStore store, String deviceLanguageCode) {
     final s = store.value;
-    final locale = s.resolve(deviceLanguageCode);
+    // A headless engine reports `und`; fall back to what the foreground app last saw.
+    final code = deviceLanguageCode.isEmpty || deviceLanguageCode == 'und'
+        ? s.deviceLanguage
+        : deviceLanguageCode;
+    final locale = s.resolve(code);
     return AppSettingsView(
       locale: locale,
       is24Hour: s.is24Hour(locale.isBangla),

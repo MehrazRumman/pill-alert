@@ -89,10 +89,21 @@ class NirbhorType {
   TextStyle asLatin(TextStyle style) => style.copyWith(fontFamily: kArchivo);
 
   /// Restyles [style] onto Anek Bangla — required for any Bangla literal shown in another locale.
-  TextStyle asBangla(TextStyle style) => style.copyWith(fontFamily: kAnekBangla);
+  TextStyle asBangla(TextStyle style) => style.copyWith(
+        fontFamily: kAnekBangla,
+        // The floor travels with the face: a Latin-authored 1.2 header re-set in Anek Bangla would
+        // otherwise slice its matras off, which is the exact failure the floor was measured from.
+        height: _floored(style.height, kBanglaMinLine),
+      );
 
   /// Restyles [style] onto Anek Devanagari — required for any Hindi literal shown elsewhere.
-  TextStyle asDevanagari(TextStyle style) => style.copyWith(fontFamily: kAnekDevanagari);
+  TextStyle asDevanagari(TextStyle style) => style.copyWith(
+        fontFamily: kAnekDevanagari,
+        height: _floored(style.height, kDevanagariMinLine),
+      );
+
+  static double _floored(double? height, double floor) =>
+      height == null || height < floor ? floor : height;
 
   /// The face a language's own name must be set in, for a list that names each option in itself.
   TextStyle asScriptOf(AppLocale locale, TextStyle style) => switch (locale.script) {
@@ -118,6 +129,13 @@ TextStyle _style({
   };
   return TextStyle(
     fontFamily: family,
+    // None of the three faces covers another script, and patient-typed text (a medicine form, a
+    // caregiver's name) is stored in whatever locale it was typed in and shown in every other. A
+    // per-glyph fallback to the other two faces is what keeps that from rendering as tofu.
+    fontFamilyFallback: [
+      for (final f in const [kAnekBangla, kAnekDevanagari, kArchivo])
+        if (f != family) f,
+    ],
     fontWeight: FontWeight.values[(weight ~/ 100) - 1],
     // The bundled files are variable; without an explicit wght variation every weight would render
     // at the axis default (400) no matter what fontWeight says.

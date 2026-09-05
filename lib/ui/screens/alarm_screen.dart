@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../data/app_scope.dart';
 import '../../domain/models.dart';
+import '../../i18n/app_locale.dart';
 import '../../navigation/nav_actions.dart';
 import '../../notifications/alarm_audio.dart';
 import '../../notifications/alarm_scheduler.dart';
@@ -31,26 +34,63 @@ class _AlarmScreenState extends State<AlarmScreen> {
   final FlutterTts _tts = FlutterTts();
   List<DoseWithMedicine> _doses = const [];
   bool _spoken = false;
+  Timer? _watch;
+  bool _closing = false;
 
   @override
   void initState() {
     super.initState();
     AlarmAudio.start();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _load();
+      // Shade actions are handled on a separate isolate whose writes never notify this one. If
+      // the patient answers from the shade while this screen is ringing, notice and stand down.
+      _watch = Timer.periodic(const Duration(seconds: 2), (_) => _checkStillOpen());
+    });
   }
 
   @override
   void dispose() {
+    _watch?.cancel();
     AlarmAudio.stop();
     _tts.stop();
     super.dispose();
+  }
+
+  Future<void> _checkStillOpen() async {
+    final id = widget.doseId;
+    if (id == null || _closing || !mounted || _doses.isEmpty) return;
+    final dwm = await context.repo.doseWithMedicine(id);
+    if (_closing || !mounted) return;
+    final status = dwm?.dose.status;
+    final answered = dwm == null || (status != DoseStatus.upcoming && status != DoseStatus.missed);
+    final snoozedAway = dwm != null &&
+        dwm.dose.scheduledEpochMillis != _doses.first.dose.scheduledEpochMillis;
+    if (!answered && !snoozedAway) return;
+    // Only one of this and [_resolve] may pop, or the route underneath goes with it.
+    _closing = true;
+    _watch?.cancel();
+    await AlarmAudio.stop();
+    await _tts.stop();
+    if (mounted) context.nav.back();
   }
 
   Future<void> _load() async {
     final id = widget.doseId;
     if (id == null) return;
     final dwm = await context.repo.doseWithMedicine(id);
-    if (!mounted || dwm == null) return;
+    if (dwm == null) {
+      // The dose was dropped (a schedule edit, a removed medicine) after its reminder was armed.
+      // Every button below is disabled, so this is the last chance to take the ongoing
+      // notification off the shade.
+      await AlarmScheduler.clearForDose(id);
+      return;
+    }
+    if (!mounted) return;
+    // Reached from the missed-dose notice: the reminder has already had its say, so a siren for a
+    // dose that went by half an hour ago is noise, not help.
+    if (dwm.dose.status == DoseStatus.missed) await AlarmAudio.stop();
+    if (!mounted) return;
     setState(() => _doses = [dwm]);
     // The reminder is deliberately left on the shade. It is posted ongoing precisely so an
     // unanswered dose stays visible: backing out of this screen must not look like answering it.
@@ -63,7 +103,12 @@ class _AlarmScreenState extends State<AlarmScreen> {
     if (!context.settingsStore.value.readAloud || _doses.isEmpty) return;
     _spoken = true;
     try {
-      await _tts.setLanguage(context.isBangla ? 'bn-BD' : 'en-US');
+      await _tts.setLanguage(switch (context.locale) {
+        AppLocale.bn => 'bn-BD',
+        AppLocale.en => 'en-US',
+        AppLocale.hi => 'hi-IN',
+        AppLocale.es => 'es-ES',
+      });
       await _tts.speak(_doses.map((d) => d.medicine.displayName).join(', '));
     } catch (_) {
       // A device without a Bangla voice must not take the alarm down with it.
@@ -77,6 +122,9 @@ class _AlarmScreenState extends State<AlarmScreen> {
 
   Future<void> _resolve(Future<void> Function(DoseWithMedicine dwm) action,
       {bool rearm = false}) async {
+    if (_closing) return;
+    _closing = true;
+    _watch?.cancel();
     final nav = context.nav;
     for (final dwm in _doses) {
       await action(dwm);

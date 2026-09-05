@@ -91,3 +91,8 @@ class DoseScheduler {
 
 /// A local date with no time component, used as a map key across the record/adherence code.
 DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// [n] calendar days from [d], as a local midnight. Never `add(Duration(days: n))`: a Duration is
+/// 24 fixed hours, so across a DST change it lands at 01:00 or 23:00 and no longer equals the
+/// `dateOnly` keys the record and streak code compares against.
+DateTime addDays(DateTime d, int n) => DateTime(d.year, d.month, d.day + n);

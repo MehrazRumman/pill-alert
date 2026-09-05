@@ -100,7 +100,11 @@ class NirbhorRepository extends ChangeNotifier {
     return rows.isEmpty ? null : medicineFromRow(rows.first);
   }
 
-  Future<void> upsertMedicine(Medicine medicine) async {
+  /// Inserts or updates a medicine. When the schedule changed, its pending doses are regenerated;
+  /// the ids of the doses that were dropped are returned so the caller can cancel their alarms —
+  /// one of them may be a reminder currently posted ongoing on the shade.
+  Future<List<int>> upsertMedicine(Medicine medicine) async {
+    final removed = <int>[];
     await _raw.transaction((txn) async {
       final rows =
           await txn.query('medicines', where: 'id = ?', whereArgs: [medicine.id], limit: 1);
@@ -121,9 +125,10 @@ class NirbhorRepository extends ChangeNotifier {
             !listEquals(old.resolvedTimes, medicine.resolvedTimes) ||
             old.paused != medicine.paused;
       }
-      if (scheduleChanged) await _regenerateUpcoming(txn, medicine.id);
+      if (scheduleChanged) removed.addAll(await _regenerateUpcoming(txn, medicine.id));
     });
     notifyListeners();
+    return removed;
   }
 
   /// Deletes a medicine and its doses, returning the removed dose ids so their alarms can be
@@ -161,7 +166,7 @@ class NirbhorRepository extends ChangeNotifier {
 
   (int, int) _dayBounds(DateTime date) {
     final start = DateTime(date.year, date.month, date.day);
-    final end = start.add(const Duration(days: 1));
+    final end = addDays(start, 1);
     return (start.millisecondsSinceEpoch, end.millisecondsSinceEpoch - 1);
   }
 
@@ -173,22 +178,40 @@ class NirbhorRepository extends ChangeNotifier {
 
   Future<void> _ensureDosesFor(DatabaseExecutor ex, DateTime date) async {
     final (start, end) = _dayBounds(date);
+    // Times already past their grace window are never manufactured after the fact. Doses are laid
+    // down two weeks ahead, so a row missing this late means no reminder ever rang for it — a
+    // medicine added at 15:00 with a 09:00 time, a resumed one — and a dose the sweep would flip
+    // to MISSED within the minute is a mark against the patient for nothing.
+    final notBefore = _now - 30 * 60000;
+    // A day's dose is identified by medicine + block, not by its clock time: a snooze shifts
+    // scheduledEpochMillis, and keying on the time would re-create the dose at its original slot
+    // (which the missed sweep would then flip to MISSED behind the patient's back). A snooze can
+    // also carry a late dose past midnight, so the lookup reaches half a day either side of the
+    // planned time rather than stopping at the calendar boundary.
+    const halfDay = 12 * 3600000;
     final existingRows = await ex.query(
       'doses',
-      columns: ['medicineId', 'scheduledEpochMillis'],
+      columns: ['medicineId', 'block', 'scheduledEpochMillis'],
       where: 'scheduledEpochMillis BETWEEN ? AND ?',
-      whereArgs: [start, end],
+      whereArgs: [start - halfDay, end + halfDay],
     );
-    final existing = existingRows
-        .map((r) => '${r['medicineId']}@${(r['scheduledEpochMillis'] as num).toInt()}')
-        .toSet();
+    final existing = <String, List<int>>{};
+    for (final r in existingRows) {
+      existing
+          .putIfAbsent('${r['medicineId']}@${r['block']}', () => [])
+          .add((r['scheduledEpochMillis'] as num).toInt());
+    }
+    bool alreadyExists(PlannedDose planned) =>
+        (existing['${planned.medicineId}@${planned.block.stored}'] ?? const [])
+            .any((at) => (at - planned.epochMillis).abs() <= halfDay);
     final meds = (await ex.query('medicines')).map(medicineFromRow);
 
     final batch = ex.batch();
     var queued = 0;
     for (final m in meds) {
       for (final planned in DoseScheduler.dosesFor(m, date)) {
-        if (existing.contains('${planned.medicineId}@${planned.epochMillis}')) continue;
+        if (planned.epochMillis < notBefore) continue;
+        if (alreadyExists(planned)) continue;
         batch.insert(
           'doses',
           {
@@ -209,17 +232,18 @@ class NirbhorRepository extends ChangeNotifier {
     if (queued > 0) await batch.commit(noResult: true);
   }
 
-  /// Regenerates future UPCOMING doses for a medicine after a schedule edit.
-  Future<void> _regenerateUpcoming(DatabaseExecutor ex, String medicineId) async {
+  /// Regenerates future UPCOMING doses for a medicine after a schedule edit, returning the ids of
+  /// the doses it removed.
+  Future<List<int>> _regenerateUpcoming(DatabaseExecutor ex, String medicineId) async {
     final today = dateOnly(DateTime.now());
-    await ex.delete(
-      'doses',
-      where: 'medicineId = ? AND scheduledEpochMillis >= ? AND status = ?',
-      whereArgs: [medicineId, _dayBounds(today).$1, DoseStatus.upcoming.stored],
-    );
+    final where = 'medicineId = ? AND scheduledEpochMillis >= ? AND status = ?';
+    final args = [medicineId, _dayBounds(today).$1, DoseStatus.upcoming.stored];
+    final stale = await ex.query('doses', columns: ['id'], where: where, whereArgs: args);
+    await ex.delete('doses', where: where, whereArgs: args);
     for (var i = 0; i <= 14; i++) {
-      await _ensureDosesFor(ex, today.add(Duration(days: i)));
+      await _ensureDosesFor(ex, addDays(today, i));
     }
+    return stale.map((r) => (r['id'] as num).toInt()).toList();
   }
 
   /// Doses for [date] grouped into the three time blocks, joined with their medicines.
@@ -284,7 +308,7 @@ class NirbhorRepository extends ChangeNotifier {
         ],
       );
       if (changed == 0) return;
-      final used = math.max(1, medicine.dosePerIntake.ceil());
+      final used = StockCalculator.unitsPerIntake(medicine.dosePerIntake);
       await txn.rawUpdate(
         'UPDATE medicines SET stockCount = MAX(0, stockCount - ?), stockUpdatedAt = ? WHERE id = ?',
         [used, now, medicine.id],
@@ -308,7 +332,7 @@ class NirbhorRepository extends ChangeNotifier {
         [DoseStatus.upcoming.stored, doseId, DoseStatus.taken.stored, DoseStatus.takenLate.stored],
       );
       if (changed == 0) return;
-      final used = math.max(1, medicine.dosePerIntake.ceil());
+      final used = StockCalculator.unitsPerIntake(medicine.dosePerIntake);
       await txn.rawUpdate(
         'UPDATE medicines SET stockCount = MAX(0, stockCount + ?), stockUpdatedAt = ? WHERE id = ?',
         [used, _now, medicine.id],
@@ -360,17 +384,30 @@ class NirbhorRepository extends ChangeNotifier {
   }
 
   /// Snooze +10 min (repeats handled by the alarm scheduler); shifts the scheduled time.
+  ///
+  /// A dose the sweep has already flipped to MISSED can be snoozed too — the missed-dose
+  /// notification opens the same alarm screen, and "later" from there must mean a reminder is
+  /// coming, not a silent no-op. It returns to UPCOMING at the new time.
   Future<void> snoozeDose(int doseId, {int minutes = 10}) async {
     final rows = await _raw.query('doses', where: 'id = ?', whereArgs: [doseId], limit: 1);
     if (rows.isEmpty) return;
     final dose = doseFromRow(rows.first);
-    if (dose.status != DoseStatus.upcoming) return;
+    if (dose.status != DoseStatus.upcoming && dose.status != DoseStatus.missed) return;
     final shifted = DoseScheduler.snoozedEpochMillis(dose.scheduledEpochMillis, _now, minutes);
     if (shifted == null) return;
     final at = DateTime.fromMillisecondsSinceEpoch(shifted);
     await _raw.rawUpdate(
-      'UPDATE doses SET scheduledEpochMillis = ?, hour = ?, minute = ? WHERE id = ? AND status = ?',
-      [shifted, at.hour, at.minute, doseId, DoseStatus.upcoming.stored],
+      'UPDATE doses SET scheduledEpochMillis = ?, hour = ?, minute = ?, status = ? '
+      'WHERE id = ? AND status IN (?, ?)',
+      [
+        shifted,
+        at.hour,
+        at.minute,
+        DoseStatus.upcoming.stored,
+        doseId,
+        DoseStatus.upcoming.stored,
+        DoseStatus.missed.stored,
+      ],
     );
     notifyListeners();
   }
@@ -383,7 +420,7 @@ class NirbhorRepository extends ChangeNotifier {
     return meds.map((m) {
       final days = StockCalculator.estimatedDays(m);
       final runsOut =
-          days == null ? null : today.add(Duration(days: days)).millisecondsSinceEpoch;
+          days == null ? null : addDays(today, days).millisecondsSinceEpoch;
       return StockStatus(
         medicineId: m.id,
         count: m.stockCount,
@@ -406,8 +443,8 @@ class NirbhorRepository extends ChangeNotifier {
 
   Future<AdherenceWindow> adherenceOver(int days) async {
     final today = dateOnly(DateTime.now());
-    final start = today.subtract(Duration(days: days - 1)).millisecondsSinceEpoch;
-    final end = today.add(const Duration(days: 1)).millisecondsSinceEpoch - 1;
+    final start = addDays(today, -(days - 1)).millisecondsSinceEpoch;
+    final end = addDays(today, 1).millisecondsSinceEpoch - 1;
     final doses = await _dosesBetween(start, end);
     final takenLate = doses.where((d) => d.status == DoseStatus.takenLate).length;
     final taken = doses.where((d) => d.status.isTaken).length;
@@ -430,14 +467,14 @@ class NirbhorRepository extends ChangeNotifier {
       byDay.putIfAbsent(dateOnly(d.scheduledAt), () => []).add(d);
     }
     var streak = 0;
-    var day = dateOnly(DateTime.now()).subtract(const Duration(days: 1)); // fully-completed past days
+    var day = addDays(dateOnly(DateTime.now()), -1); // fully-completed past days
     while (true) {
       final d = byDay[day];
       if (d == null) break;
       final done = d.isNotEmpty && d.every((x) => x.status.isTaken);
       if (!done) break;
       streak++;
-      day = day.subtract(const Duration(days: 1));
+      day = addDays(day, -1);
     }
     return streak;
   }
@@ -477,14 +514,14 @@ class NirbhorRepository extends ChangeNotifier {
   /// Per-day completion cells for the record grid (oldest→newest), covering [days] ending today.
   Future<List<DayCell>> dayCells(int days) async {
     final today = dateOnly(DateTime.now());
-    final start = today.subtract(Duration(days: days - 1)).millisecondsSinceEpoch;
-    final end = today.add(const Duration(days: 1)).millisecondsSinceEpoch - 1;
+    final start = addDays(today, -(days - 1)).millisecondsSinceEpoch;
+    final end = addDays(today, 1).millisecondsSinceEpoch - 1;
     final byDay = <DateTime, List<DoseOccurrence>>{};
     for (final d in await _dosesBetween(start, end)) {
       byDay.putIfAbsent(dateOnly(d.scheduledAt), () => []).add(d);
     }
     return List.generate(days, (i) {
-      final date = today.subtract(Duration(days: days - 1 - i));
+      final date = addDays(today, -(days - 1 - i));
       final d = byDay[date] ?? const <DoseOccurrence>[];
       final DayState state;
       if (date.isAfter(today)) {
@@ -548,8 +585,8 @@ class NirbhorRepository extends ChangeNotifier {
     int minTotal = 6,
   }) async {
     final today = dateOnly(DateTime.now());
-    final start = today.subtract(Duration(days: days - 1)).millisecondsSinceEpoch;
-    final end = today.add(const Duration(days: 1)).millisecondsSinceEpoch - 1;
+    final start = addDays(today, -(days - 1)).millisecondsSinceEpoch;
+    final end = addDays(today, 1).millisecondsSinceEpoch - 1;
 
     // Upcoming and skipped doses are excluded: neither is a miss the patient can act on.
     final settled = (await _dosesBetween(start, end))
@@ -585,8 +622,8 @@ class NirbhorRepository extends ChangeNotifier {
   /// Per-medicine adherence over the last [days].
   Future<List<MedAdherence>> perMedicineAdherence(int days) async {
     final today = dateOnly(DateTime.now());
-    final start = today.subtract(Duration(days: days - 1)).millisecondsSinceEpoch;
-    final end = today.add(const Duration(days: 1)).millisecondsSinceEpoch - 1;
+    final start = addDays(today, -(days - 1)).millisecondsSinceEpoch;
+    final end = addDays(today, 1).millisecondsSinceEpoch - 1;
     final meds = await medicines();
     final byMed = <String, List<DoseOccurrence>>{};
     for (final d in await _dosesBetween(start, end)) {

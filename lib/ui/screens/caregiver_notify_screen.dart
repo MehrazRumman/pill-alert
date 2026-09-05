@@ -172,8 +172,8 @@ class CaregiverNotifyScreen extends StatelessWidget {
                           background: colors.sage,
                           child: Text(
                             context.tr(
-                              'আপনার পরিবার যা যা বার্তা পায়, আপনি সবই দেখতে পান। সর্বশেষ পাঠানো হয়েছে গতকাল।',
-                              'You can see every message your family gets. Last sent yesterday.',
+                              'বার্তা পাঠানো চালু হলে আপনার পরিবার যা যা বার্তা পাবে, আপনি সবই এখানে দেখতে পাবেন।',
+                              'Once delivery is available, every message your family gets will show here.',
                             ),
                             style: context.type.body.copyWith(color: colors.ink2),
                           ),

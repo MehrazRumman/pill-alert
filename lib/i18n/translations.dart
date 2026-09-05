@@ -28,6 +28,10 @@ class Translations {
   Translations._();
 
   static const Map<String, String> hi = <String, String>{
+    "This dose was skipped. If you did take it, say so to keep today's count accurate.": "यह खुराक छोड़ दी गई थी। अगर आपने ली हो, तो बताएँ ताकि आज की गिनती सही रहे।",
+    "Once delivery is available, every message your family gets will show here.": "संदेश भेजना चालू होने पर आपके परिवार को मिलने वाला हर संदेश यहाँ दिखेगा।",
+    "All of today's doses are done. Today's count is in your Record.": "आज की सभी खुराकें हो गईं। आज की गिनती आपके रिकॉर्ड में है।",
+    "Nothing counted yet over 30 days": "30 दिनों में अभी कुछ नहीं गिना गया",
     " and ": " और ",
     "1 month": "1 महीना",
     "1 year": "1 साल",
@@ -376,6 +380,10 @@ class Translations {
   };
 
   static const Map<String, String> es = <String, String>{
+    "This dose was skipped. If you did take it, say so to keep today's count accurate.": "Esta dosis se saltó. Si la tomó, indíquelo para que el recuento de hoy sea exacto.",
+    "Once delivery is available, every message your family gets will show here.": "Cuando el envío esté disponible, cada mensaje que reciba su familia aparecerá aquí.",
+    "All of today's doses are done. Today's count is in your Record.": "Todas las dosis de hoy están hechas. El recuento de hoy está en su Registro.",
+    "Nothing counted yet over 30 days": "Aún no hay nada contado en 30 días",
     " and ": " y ",
     "1 month": "1 mes",
     "1 year": "1 año",

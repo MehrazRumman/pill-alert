@@ -278,12 +278,15 @@ class _DoctorReportScreenState extends State<DoctorReportScreen> {
                                       SizedBox(
                                         width: 110,
                                         child: Text(
-                                          _latinNames
+                                          _latinNames && m.medicine.packName.trim().isNotEmpty
                                               ? m.medicine.packName
                                               : m.medicine.displayName,
-                                          style: (_latinNames
+                                          // The locale face carries per-glyph fallback to the
+                                          // other scripts; a Hindi or Bangla display name must not
+                                          // be forced into a single family.
+                                          style: (_latinNames && m.medicine.packName.trim().isNotEmpty
                                                   ? context.type.asLatin(context.type.meta)
-                                                  : context.type.asBangla(context.type.meta))
+                                                  : context.type.meta)
                                               .copyWith(
                                             fontSize: 12,
                                             color: colors.ink,
@@ -468,6 +471,7 @@ Future<Uint8List> _buildReportPdf({
 }) async {
   final bangla = pw.Font.ttf(await rootBundle.load('assets/fonts/AnekBangla.ttf'));
   final latin = pw.Font.ttf(await rootBundle.load('assets/fonts/Archivo.ttf'));
+  final devanagari = pw.Font.ttf(await rootBundle.load('assets/fonts/AnekDevanagari.ttf'));
 
   // Mirrors NirbhorColors; PdfColor cannot take the token directly.
   const ink = PdfColor.fromInt(0xFF14262A);
@@ -482,7 +486,7 @@ Future<Uint8List> _buildReportPdf({
   final reported = medicines.where((m) => m.total > 0).toList();
 
   final doc = pw.Document(
-    theme: pw.ThemeData.withFont(base: latin, bold: latin, fontFallback: [bangla]),
+    theme: pw.ThemeData.withFont(base: latin, bold: latin, fontFallback: [bangla, devanagari]),
   );
 
   pw.Widget headerCell(String text) => pw.Text(
@@ -574,7 +578,9 @@ Future<Uint8List> _buildReportPdf({
           children: [
             headerCell('Taken: ${window.taken}'),
             headerCell('Missed: ${window.missed}'),
-            headerCell('Adherence: ${window.percent}%'),
+            // Late doses count in "Taken" but not in this percentage, so it is labelled for what
+            // it is; "Adherence" beside a Taken count that includes them read as a contradiction.
+            headerCell('On time: ${window.percent}%'),
           ],
         ),
         pw.SizedBox(height: 24),
@@ -582,7 +588,7 @@ Future<Uint8List> _buildReportPdf({
           children: [
             pw.Expanded(flex: 5, child: headerCell('Medicine')),
             pw.Expanded(flex: 3, child: headerCell('Taken / counted')),
-            pw.Expanded(flex: 2, child: headerCell('Rate')),
+            pw.Expanded(flex: 2, child: headerCell('On time')),
           ],
         ),
         pw.SizedBox(height: 6),
@@ -611,9 +617,9 @@ Future<Uint8List> _buildReportPdf({
                                 : item.medicine.packName)
                             : item.medicine.displayName),
                         style: pw.TextStyle(
-                          // A Bangla display name needs the Bengali face, not the Latin one.
-                          font: latinNames ? latin : bangla,
-                          fontFallback: [bangla, latin],
+                          // A Bangla or Hindi display name needs its own face, not the Latin one.
+                          font: latin,
+                          fontFallback: [bangla, devanagari],
                           fontSize: 12,
                           color: ink2,
                         ),

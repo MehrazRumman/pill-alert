@@ -366,7 +366,6 @@ class _DayCellView extends StatelessWidget {
         context.num(cell.date.day),
         style: context.type.meta.copyWith(
           fontSize: 11,
-          height: 1.0,
           color: onFill,
           fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
         ),

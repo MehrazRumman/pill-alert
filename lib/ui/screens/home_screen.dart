@@ -8,6 +8,7 @@ import '../../domain/models.dart';
 import '../../i18n/dates.dart';
 import '../../navigation/nav_actions.dart';
 import '../../notifications/alarm_scheduler.dart';
+import '../../notifications/missed_dose_notifier.dart';
 import '../../notifications/nirbhor_notifications.dart';
 import '../../theme/theme.dart';
 import '../components/buttons.dart';
@@ -56,7 +57,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final repo = context.repo;
     final currentDate = DateTime.now();
     await repo.ensureDosesFor(currentDate);
-    await repo.markOverdueDoses();
+    // Through the sweep, not the repository directly: a dose that just went MISSED still has its
+    // ongoing reminder on the shade, and only the sweep clears it.
+    await MissedDoseNotifier.sweep(repo);
     if (!mounted) return;
     setState(() {
       _today = currentDate;
@@ -670,7 +673,11 @@ class DoseCard extends StatelessWidget {
   }
 
   Future<void> _missedActions(BuildContext context) async {
-    final choice = await showMissedDoseDialog(context, medicineName: dwm.medicine.displayName);
+    final choice = await showMissedDoseDialog(
+      context,
+      medicineName: dwm.medicine.displayName,
+      skipped: dwm.dose.status == DoseStatus.skipped,
+    );
     switch (choice) {
       case MissedDoseChoice.taken:
         onTaken();
@@ -984,8 +991,8 @@ class _DayComplete extends StatelessWidget {
           background: colors.sage,
           child: Text(
             context.tr(
-              'রাত ৯:৩০-এ পরিবারকে আজকের হিসাব পাঠানো হবে।',
-              "Today's summary goes to your family at 9:30 PM.",
+              'আজকের সব ডোজ নেওয়া হয়েছে। আজকের হিসাব রেকর্ডে দেখতে পাবেন।',
+              "All of today's doses are done. Today's count is in your Record.",
             ),
             style: context.type.body.copyWith(color: colors.ink2),
           ),

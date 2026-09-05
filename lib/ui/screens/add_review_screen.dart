@@ -56,7 +56,8 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
     final localeCode = context.locale.code;
     final nav = context.nav;
     try {
-      await repo.upsertMedicine(draft.toMedicine());
+      final removed = await repo.upsertMedicine(draft.toMedicine());
+      await AlarmScheduler.clearForDoses(removed);
       await AlarmScheduler.rescheduleAll(
         repo,
         settings: AppSettingsView.from(store, localeCode),

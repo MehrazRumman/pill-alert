@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 
 import '../data/app_scope.dart';
@@ -88,6 +89,7 @@ class _NirbhorAppRootState extends State<NirbhorAppRoot> with WidgetsBindingObse
       selectTabRoute: (route) => _tabShellKey.currentState?.select(route),
     );
     _settings.addListener(_onSettingsChanged);
+    _rememberDeviceLanguage();
 
     // A reminder tapped while the app is already running arrives here; a cold start arrives as
     // widget.launchDoseId. Both open the alarm over whatever the patient was looking at.
@@ -134,6 +136,9 @@ class _NirbhorAppRootState extends State<NirbhorAppRoot> with WidgetsBindingObse
 
   String get _deviceLanguageCode => ui.PlatformDispatcher.instance.locale.languageCode;
 
+  /// So the headless engine that handles shade actions resolves the same language we do.
+  void _rememberDeviceLanguage() => _settings.rememberDeviceLanguage(_deviceLanguageCode);
+
   @override
   Widget build(BuildContext context) {
     final settings = _settings.value;
@@ -154,6 +159,9 @@ class _NirbhorAppRootState extends State<NirbhorAppRoot> with WidgetsBindingObse
       // chosen language rather than the device's. `locale` is set explicitly because the app's
       // language is a setting, not a device fact.
       locale: Locale(locale.code),
+      // Without these delegates the locale above is decorative: Material's own strings (the text
+      // selection menu, dialog buttons, the date picker) would stay in English regardless.
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: [for (final l in AppLocale.values) Locale(l.code)],
       initialRoute: _initialRoute,
       onGenerateRoute: _onGenerateRoute,

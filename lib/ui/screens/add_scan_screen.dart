@@ -46,25 +46,38 @@ class _AddScanScreenState extends State<AddScanScreen> with WidgetsBindingObserv
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) return;
-    // The camera must be released while backgrounded or another app cannot open it.
+    // The camera must be released while backgrounded or another app cannot open it — and it is
+    // precisely when the controller has been released that a resume has to bring it back. (The
+    // photo picker and the permission-settings round trip both pass through inactive.)
     if (state == AppLifecycleState.inactive) {
-      controller.dispose();
+      final controller = _controller;
+      if (controller == null) return;
       _controller = null;
+      if (mounted) setState(() {});
+      controller.dispose();
     } else if (state == AppLifecycleState.resumed) {
-      _requestAndStart();
+      if (_controller == null) _requestAndStart();
     }
   }
 
+  /// One start at a time: the "Allow camera" button is visible while the initial request is
+  /// still pending, and two concurrent starts would leak the first controller.
+  bool _starting = false;
+
   Future<void> _requestAndStart() async {
-    final status = await Permission.camera.request();
-    if (!mounted) return;
-    setState(() {
-      _hasPermission = status.isGranted;
-      _permissionDenied = status.isDenied || status.isPermanentlyDenied;
-    });
-    if (status.isGranted) await _startCamera();
+    if (_starting) return;
+    _starting = true;
+    try {
+      final status = await Permission.camera.request();
+      if (!mounted) return;
+      setState(() {
+        _hasPermission = status.isGranted;
+        _permissionDenied = status.isDenied || status.isPermanentlyDenied;
+      });
+      if (status.isGranted && _controller == null) await _startCamera();
+    } finally {
+      _starting = false;
+    }
   }
 
   Future<void> _startCamera() async {
@@ -81,7 +94,7 @@ class _AddScanScreenState extends State<AddScanScreen> with WidgetsBindingObserv
         enableAudio: false,
       );
       await controller.initialize();
-      if (!mounted) {
+      if (!mounted || _controller != null) {
         await controller.dispose();
         return;
       }
